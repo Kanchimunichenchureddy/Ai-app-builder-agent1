@@ -1,0 +1,74 @@
+# Development version with hot reload
+version: '3.8'
+
+services:
+  # MySQL Database
+  mysql:
+    image: mysql:8.0
+    container_name: ai_app_builder_mysql_dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ai_app_builder
+      MYSQL_USER: appuser
+      MYSQL_PASSWORD: rootpassword
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./database/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - ai_app_network
+
+  # FastAPI Backend (Development)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: ai_app_builder_backend_dev
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=mysql+pymysql://appuser:rootpassword@mysql:3306/ai_app_builder
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - DEBUG=true
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - generated_projects_dev:/app/generated_projects
+    depends_on:
+      - mysql
+    networks:
+      - ai_app_network
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # React Frontend (Development)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: ai_app_builder_frontend_dev
+    restart: unless-stopped
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000/api
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+    networks:
+      - ai_app_network
+    command: npm start
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  generated_projects_dev:
+    driver: local
+
+networks:
+  ai_app_network:
+    driver: bridge
