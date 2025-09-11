@@ -43,11 +43,46 @@ export const AuthProvider = ({ children }) => {
 
   const fetchUserProfile = async () => {
     try {
+      // Check if we're in demo mode
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          if (userData.email === 'demo@appforge.dev') {
+            // In demo mode, use saved user data
+            setUser(userData);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // If parsing fails, continue with normal flow
+        }
+      }
+      
+      // Real API call
       const response = await api.get('/auth/me');
       setUser(response.data);
     } catch (error) {
       console.error('Failed to fetch user profile:', error);
+      // Check if we're in demo mode
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          if (userData.email === 'demo@appforge.dev') {
+            // Stay logged in for demo mode even if API fails
+            setUser(userData);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          // If parsing fails, continue with normal flow
+        }
+      }
+      
+      // Not in demo mode, remove auth tokens
       localStorage.removeItem('token');
+      localStorage.removeItem('user');
       delete api.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -111,6 +146,11 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (email, password, username, fullName) => {
     try {
+      // Check if we're in demo mode
+      if (email === 'demo@appforge.dev' && password === 'demo123') {
+        return await login(email, password);
+      }
+      
       const response = await api.post('/auth/register', {
         email,
         password,

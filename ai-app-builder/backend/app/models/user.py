@@ -2,6 +2,11 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, Boolean, Foreign
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..core.database import Base
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .project import Project
+    from .deployment import Deployment
 
 class User(Base):
     __tablename__ = "users"
@@ -16,6 +21,6 @@ class User(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     
-    # Relationships
+    # Relationships - using string references to avoid circular imports
     projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
     deployments = relationship("Deployment", back_populates="user", cascade="all, delete-orphan")

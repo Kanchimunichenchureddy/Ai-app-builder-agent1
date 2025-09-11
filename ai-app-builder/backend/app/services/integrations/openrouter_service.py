@@ -1,34 +1,49 @@
-from typing import Dict, Any, List
-import json
-from ..core.config import settings
+from typing import Dict, Any
 import httpx
+import json
+from app.core.config import settings
 
-class OpenAIService:
-    """Service for OpenAI API integration."""
+class OpenRouterService:
+    """Service for OpenRouter API integration."""
     
     def __init__(self):
-        self.api_key = settings.OPENAI_API_KEY
-        self.base_url = "https://api.openai.com/v1"
-        self.model = "gpt-4"
+        self.api_key = settings.OPENROUTER_API_KEY
+        self.base_url = "https://api.openrouter.ai/api/v1"  # Updated URL
+        # Use a free model that doesn't require payment
+        self.default_model = "mistralai/mistral-7b-instruct"  # Free model
         
-    async def generate_response(self, system_prompt: str, user_prompt: str) -> str:
-        """Generate response using OpenAI."""
+        if self.api_key:
+            print("OpenRouter API key is configured")
+        
+    async def generate_response(
+        self, 
+        system_prompt: str, 
+        user_prompt: str, 
+        model: str = None, 
+        max_tokens: int = 4000, 
+        temperature: float = 0.7
+    ) -> str:
+        """Generate response using OpenRouter."""
         if not self.api_key:
-            return self._fallback_response(user_prompt)
+            error_message = "OpenRouter API key is not configured. Please set the OPENROUTER_API_KEY environment variable."
+            print(error_message)
+            raise ConnectionError(error_message)
             
         headers = {
             "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:3000",  # For OpenRouter tracking
+            "X-Title": "AI App Builder"
         }
         
         data = {
-            "model": self.model,
+            "model": model or self.default_model,
             "messages": [
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt}
             ],
-            "max_tokens": 4000,
-            "temperature": 0.7
+            "max_tokens": max_tokens,
+            "temperature": temperature
         }
         
         try:
@@ -43,11 +58,15 @@ class OpenAIService:
                 result = response.json()
                 return result["choices"][0]["message"]["content"]
         except Exception as e:
-            print(f"OpenAI API error: {e}")
-            return self._fallback_response(user_prompt)
+            error_message = f"OpenRouter API error: {e}"
+            print(error_message)
+            # Add more detailed logging
+            import traceback
+            traceback.print_exc()
+            raise ConnectionError(error_message)
     
     async def generate_code(self, description: str, language: str, framework: str = None) -> str:
-        """Generate code using OpenAI."""
+        """Generate code using OpenRouter."""
         system_prompt = f"""
         You are an expert {language} developer. Generate clean, production-ready code.
         {"Framework: " + framework if framework else ""}
@@ -58,6 +77,10 @@ class OpenAIService:
         - Add comments for complex logic
         - Make code modular and reusable
         - Include necessary imports
+        - Ensure code is self-contained and runnable
+        - Include example usage when relevant
+        - Add security considerations
+        - Optimize for performance
         """
         
         user_prompt = f"Generate {language} code for: {description}"
@@ -65,7 +88,7 @@ class OpenAIService:
         return await self.generate_response(system_prompt, user_prompt)
     
     def _fallback_response(self, prompt: str) -> str:
-        """Fallback response when OpenAI is not available."""
+        """Fallback response when OpenRouter is not available."""
         return json.dumps({
             "project_type": "web_app",
             "features": ["authentication", "responsive_design"],
@@ -76,5 +99,5 @@ class OpenAIService:
             },
             "integrations": [],
             "deployment": "docker",
-            "note": "Generated with fallback - OpenAI API not configured"
+            "note": "Generated with fallback - OpenRouter API not configured"
         })

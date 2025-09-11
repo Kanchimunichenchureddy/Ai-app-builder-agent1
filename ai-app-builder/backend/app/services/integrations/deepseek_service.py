@@ -1,7 +1,7 @@
 from typing import Dict, Any, List, Optional
 import httpx
 import json
-from ....core.config import settings
+from app.core.config import settings
 
 class DeepSeekService:
     """

@@ -2,8 +2,8 @@ from typing import Dict, Any, List
 import os
 import json
 from pathlib import Path
-from .integrations.openai_service import OpenAIService
-from .integrations.gemini_service import GeminiService
+# Remove OpenAI and Gemini imports and use OpenRouter instead
+from .integrations.openrouter_service import OpenRouterService
 
 class CodeGenerator:
     """
@@ -11,8 +11,8 @@ class CodeGenerator:
     """
     
     def __init__(self):
-        self.openai_service = OpenAIService()
-        self.gemini_service = GeminiService()
+        # Use OpenRouter service instead of OpenAI and Gemini
+        self.openrouter_service = OpenRouterService()
         
     async def generate_react_app(self, analysis: Dict[str, Any]) -> Dict[str, str]:
         """Generate complete React frontend application."""
@@ -125,65 +125,58 @@ class CodeGenerator:
         - Loading states
         """
         
-        return await self.openai_service.generate_code(prompt, "javascript", "react")
+        return await self.openrouter_service.generate_code(prompt, "javascript", "react")
     
-    async def _generate_dashboard_components(self) -> Dict[str, str]:
-        """Generate dashboard-specific React components."""
-        components = {}
+    async def _generate_all_files(self, analysis: Dict[str, Any], structure: Dict[str, Any]) -> Dict[str, str]:
+        """Generate all project files."""
+        files = {}
         
-        # Dashboard main component
-        components["frontend/src/components/Dashboard/Dashboard.js"] = await self.openai_service.generate_code(
-            "Create a responsive dashboard component with grid layout for widgets and charts", 
-            "javascript", "react"
-        )
+        # Generate frontend files
+        frontend_files = await self.generate_react_app(analysis)
+        files.update(frontend_files)
         
-        # Chart components
-        components["frontend/src/components/Charts/LineChart.js"] = await self.openai_service.generate_code(
-            "Create a reusable line chart component using Chart.js or similar", 
-            "javascript", "react"
-        )
+        # Generate backend files  
+        backend_files = await self.generate_fastapi_app(analysis)
+        files.update(backend_files)
         
-        components["frontend/src/components/Charts/BarChart.js"] = await self.openai_service.generate_code(
-            "Create a reusable bar chart component using Chart.js or similar", 
-            "javascript", "react"
-        )
+        # Generate database files
+        database_files = await self.generate_database_schema(analysis)
+        files.update(database_files)
         
-        # Widget components
-        components["frontend/src/components/Widgets/StatCard.js"] = await self.openai_service.generate_code(
-            "Create a statistics card widget component with icon and number display", 
-            "javascript", "react"
-        )
+        # Generate deployment files
+        deployment_files = await self.generate_deployment_config(analysis)
+        files.update(deployment_files)
         
-        return components
-    
+        return files
+
     async def _generate_ecommerce_components(self) -> Dict[str, str]:
         """Generate e-commerce specific React components."""
         components = {}
         
         # Product components
-        components["frontend/src/components/Products/ProductList.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Products/ProductList.js"] = await self.openrouter_service.generate_code(
             "Create a product listing component with grid layout, filtering, and pagination", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Products/ProductCard.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Products/ProductCard.js"] = await self.openrouter_service.generate_code(
             "Create a product card component with image, title, price, and add to cart button", 
             "javascript", "react"
         )
         
         # Cart components
-        components["frontend/src/components/Cart/Cart.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Cart/Cart.js"] = await self.openrouter_service.generate_code(
             "Create a shopping cart component with item management and total calculation", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Cart/CartItem.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Cart/CartItem.js"] = await self.openrouter_service.generate_code(
             "Create a cart item component with quantity controls and remove option", 
             "javascript", "react"
         )
         
         # Checkout components
-        components["frontend/src/components/Checkout/Checkout.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Checkout/Checkout.js"] = await self.openrouter_service.generate_code(
             "Create a checkout component with form validation and Stripe integration", 
             "javascript", "react"
         )
@@ -194,22 +187,22 @@ class CodeGenerator:
         """Generate blog-specific React components."""
         components = {}
         
-        components["frontend/src/components/Blog/PostList.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Blog/PostList.js"] = await self.openrouter_service.generate_code(
             "Create a blog post listing component with pagination and search", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Blog/PostCard.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Blog/PostCard.js"] = await self.openrouter_service.generate_code(
             "Create a blog post card component with title, excerpt, date, and read more link", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Blog/PostDetail.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Blog/PostDetail.js"] = await self.openrouter_service.generate_code(
             "Create a blog post detail component with content rendering and comments", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Blog/PostEditor.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Blog/PostEditor.js"] = await self.openrouter_service.generate_code(
             "Create a rich text editor component for creating and editing blog posts", 
             "javascript", "react"
         )
@@ -220,17 +213,17 @@ class CodeGenerator:
         """Generate chat-specific React components."""
         components = {}
         
-        components["frontend/src/components/Chat/ChatRoom.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Chat/ChatRoom.js"] = await self.openrouter_service.generate_code(
             "Create a chat room component with real-time messaging using WebSocket", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Chat/MessageList.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Chat/MessageList.js"] = await self.openrouter_service.generate_code(
             "Create a message list component with auto-scroll and message grouping", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Chat/MessageInput.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Chat/MessageInput.js"] = await self.openrouter_service.generate_code(
             "Create a message input component with file upload and emoji support", 
             "javascript", "react"
         )
@@ -241,17 +234,17 @@ class CodeGenerator:
         """Generate CRM-specific React components."""
         components = {}
         
-        components["frontend/src/components/CRM/ContactList.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/CRM/ContactList.js"] = await self.openrouter_service.generate_code(
             "Create a contact list component with search, filter, and pagination", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/CRM/ContactCard.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/CRM/ContactCard.js"] = await self.openrouter_service.generate_code(
             "Create a contact card component with contact information and actions", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/CRM/DealPipeline.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/CRM/DealPipeline.js"] = await self.openrouter_service.generate_code(
             "Create a deal pipeline component with drag-and-drop kanban board", 
             "javascript", "react"
         )
@@ -262,12 +255,12 @@ class CodeGenerator:
         """Generate default components for web applications."""
         components = {}
         
-        components["frontend/src/components/Home/Home.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Home/Home.js"] = await self.openrouter_service.generate_code(
             "Create a home page component with hero section and feature highlights", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/About/About.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/About/About.js"] = await self.openrouter_service.generate_code(
             "Create an about page component with company information and team", 
             "javascript", "react"
         )
@@ -278,37 +271,37 @@ class CodeGenerator:
         """Generate common components used across all project types."""
         components = {}
         
-        components["frontend/src/components/Layout/Header.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Layout/Header.js"] = await self.openrouter_service.generate_code(
             "Create a responsive header component with navigation and user menu", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Layout/Footer.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Layout/Footer.js"] = await self.openrouter_service.generate_code(
             "Create a footer component with links and company information", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Layout/Sidebar.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Layout/Sidebar.js"] = await self.openrouter_service.generate_code(
             "Create a collapsible sidebar component for navigation", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Auth/Login.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Auth/Login.js"] = await self.openrouter_service.generate_code(
             "Create a login component with form validation and error handling", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Auth/Register.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Auth/Register.js"] = await self.openrouter_service.generate_code(
             "Create a registration component with form validation", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Common/Loading.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Common/Loading.js"] = await self.openrouter_service.generate_code(
             "Create a loading spinner component with different sizes", 
             "javascript", "react"
         )
         
-        components["frontend/src/components/Common/Modal.js"] = await self.openai_service.generate_code(
+        components["frontend/src/components/Common/Modal.js"] = await self.openrouter_service.generate_code(
             "Create a reusable modal component with backdrop and close functionality", 
             "javascript", "react"
         )
@@ -408,39 +401,39 @@ class CodeGenerator:
         - Add rate limiting if needed
         """
         
-        return await self.openai_service.generate_code(prompt, "python", "fastapi")
+        return await self.openrouter_service.generate_code(prompt, "python", "fastapi")
     
     async def _generate_fastapi_models(self, project_type: str, features: List[str]) -> Dict[str, str]:
         """Generate SQLAlchemy models."""
         models = {}
         
         # Always include User model
-        models["backend/app/models/user.py"] = await self.openai_service.generate_code(
+        models["backend/app/models/user.py"] = await self.openrouter_service.generate_code(
             "Create a SQLAlchemy User model with authentication fields", 
             "python", "sqlalchemy"
         )
         
         # Generate models based on project type
         if project_type == "ecommerce":
-            models["backend/app/models/product.py"] = await self.openai_service.generate_code(
+            models["backend/app/models/product.py"] = await self.openrouter_service.generate_code(
                 "Create SQLAlchemy models for Product, Category, and Order", 
                 "python", "sqlalchemy"
             )
             
         elif project_type == "blog":
-            models["backend/app/models/post.py"] = await self.openai_service.generate_code(
+            models["backend/app/models/post.py"] = await self.openrouter_service.generate_code(
                 "Create SQLAlchemy models for BlogPost, Category, and Comment", 
                 "python", "sqlalchemy"
             )
             
         elif project_type == "chat":
-            models["backend/app/models/message.py"] = await self.openai_service.generate_code(
+            models["backend/app/models/message.py"] = await self.openrouter_service.generate_code(
                 "Create SQLAlchemy models for ChatRoom, Message, and Participant", 
                 "python", "sqlalchemy"
             )
             
         elif project_type == "crm":
-            models["backend/app/models/contact.py"] = await self.openai_service.generate_code(
+            models["backend/app/models/contact.py"] = await self.openrouter_service.generate_code(
                 "Create SQLAlchemy models for Contact, Deal, and Task", 
                 "python", "sqlalchemy"
             )
@@ -452,36 +445,36 @@ class CodeGenerator:
         routes = {}
         
         # Always include auth routes
-        routes["backend/app/api/auth.py"] = await self.openai_service.generate_code(
+        routes["backend/app/api/auth.py"] = await self.openrouter_service.generate_code(
             "Create FastAPI authentication routes with JWT token handling", 
             "python", "fastapi"
         )
         
         # Generate routes based on project type
         if project_type == "ecommerce":
-            routes["backend/app/api/products.py"] = await self.openai_service.generate_code(
+            routes["backend/app/api/products.py"] = await self.openrouter_service.generate_code(
                 "Create FastAPI routes for product CRUD operations with pagination", 
                 "python", "fastapi"
             )
-            routes["backend/app/api/orders.py"] = await self.openai_service.generate_code(
+            routes["backend/app/api/orders.py"] = await self.openrouter_service.generate_code(
                 "Create FastAPI routes for order management and payment processing", 
                 "python", "fastapi"
             )
             
         elif project_type == "blog":
-            routes["backend/app/api/posts.py"] = await self.openai_service.generate_code(
+            routes["backend/app/api/posts.py"] = await self.openrouter_service.generate_code(
                 "Create FastAPI routes for blog post CRUD operations", 
                 "python", "fastapi"
             )
             
         elif project_type == "chat":
-            routes["backend/app/api/chat.py"] = await self.openai_service.generate_code(
+            routes["backend/app/api/chat.py"] = await self.openrouter_service.generate_code(
                 "Create FastAPI routes for chat functionality with WebSocket support", 
                 "python", "fastapi"
             )
             
         elif project_type == "crm":
-            routes["backend/app/api/contacts.py"] = await self.openai_service.generate_code(
+            routes["backend/app/api/contacts.py"] = await self.openrouter_service.generate_code(
                 "Create FastAPI routes for contact and deal management", 
                 "python", "fastapi"
             )
@@ -492,20 +485,20 @@ class CodeGenerator:
         """Generate Pydantic schemas."""
         schemas = {}
         
-        schemas["backend/app/schemas/user.py"] = await self.openai_service.generate_code(
+        schemas["backend/app/schemas/user.py"] = await self.openrouter_service.generate_code(
             "Create Pydantic schemas for User model with validation", 
             "python", "pydantic"
         )
         
         # Add schemas based on project type
         if project_type == "ecommerce":
-            schemas["backend/app/schemas/product.py"] = await self.openai_service.generate_code(
+            schemas["backend/app/schemas/product.py"] = await self.openrouter_service.generate_code(
                 "Create Pydantic schemas for Product and Order models", 
                 "python", "pydantic"
             )
             
         elif project_type == "blog":
-            schemas["backend/app/schemas/post.py"] = await self.openai_service.generate_code(
+            schemas["backend/app/schemas/post.py"] = await self.openrouter_service.generate_code(
                 "Create Pydantic schemas for BlogPost and Comment models", 
                 "python", "pydantic"
             )
@@ -516,13 +509,13 @@ class CodeGenerator:
         """Generate service layer files."""
         services = {}
         
-        services["backend/app/services/auth_service.py"] = await self.openai_service.generate_code(
+        services["backend/app/services/auth_service.py"] = await self.openrouter_service.generate_code(
             "Create authentication service with password hashing and JWT tokens", 
             "python", "fastapi"
         )
         
         if "payments" in features:
-            services["backend/app/services/payment_service.py"] = await self.openai_service.generate_code(
+            services["backend/app/services/payment_service.py"] = await self.openrouter_service.generate_code(
                 "Create payment service with Stripe integration", 
                 "python", "fastapi"
             )
@@ -570,7 +563,7 @@ class CodeGenerator:
         - Follow best practices for MySQL
         """
         
-        return await self.openai_service.generate_code(prompt, "sql", "mysql")
+        return await self.openrouter_service.generate_code(prompt, "sql", "mysql")
     
     async def _generate_mysql_migrations(self, project_type: str, features: List[str]) -> str:
         """Generate database migration files."""
@@ -584,13 +577,13 @@ class CodeGenerator:
         - CREATE INDEX statements
         """
         
-        return await self.openai_service.generate_code(prompt, "sql", "mysql")
+        return await self.openrouter_service.generate_code(prompt, "sql", "mysql")
     
     def _generate_main_dockerfile(self) -> str:
         """Generate main Dockerfile for the application."""
         return '''FROM node:18-alpine as frontend-build
 WORKDIR /app/frontend
-COPY frontend/package*.json ./
+COPY frontend/package*.json ./ 
 RUN npm ci --only=production
 COPY frontend/ ./
 RUN npm run build

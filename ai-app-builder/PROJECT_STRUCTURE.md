@@ -30,11 +30,8 @@ ai-app-builder/
 │   │   │   ├── code_generator.py
 │   │   │   ├── deployer.py
 │   │   │   └── integrations/
-│   │   │       ├── __init__.py
-│   │   │       ├── openai_service.py
-│   │   │       ├── gemini_service.py
-│   │   │       ├── stripe_service.py
-│   │   │       └── google_service.py
+│   │   │       ├── openrouter_service.py
+│   │   │       └── __init__.py
 │   │   └── utils/
 │   │       ├── __init__.py
 │   │       ├── file_handler.py

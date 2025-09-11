@@ -1,16 +1,65 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from datetime import datetime, timedelta
+from typing import Annotated, Optional
+# Import Session from the database module
+from ..core.database import SessionLocal
 from sqlalchemy.orm import Session
-from datetime import timedelta
-from typing import Optional
-
-from ..core.database import get_db
-from ..core.security import verify_password, get_password_hash, create_access_token, verify_token
-from ..core.config import settings
-from ..models.user import User
+# Fix the import path - use absolute import
+from app.core.config import settings
+from app.core.security import create_access_token, verify_password, get_password_hash, verify_token
+from app.core.database import get_db
+from app.models.user import User
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
+
+@router.post("/test-user")
+async def create_test_user(db: Session = Depends(get_db)):
+    """Create a test user for development."""
+    email = "test@example.com"
+    username = "testuser"
+    password = "testpassword123"
+    
+    # Check if test user already exists
+    existing_user = db.query(User).filter(
+        (User.email == email) | (User.username == username)
+    ).first()
+    
+    if existing_user:
+        return {
+            "success": True,
+            "message": "Test user already exists",
+            "user": {
+                "email": email,
+                "username": username,
+                "password": password
+            }
+        }
+    
+    # Create test user
+    hashed_password = get_password_hash(password)
+    user = User(
+        email=email,
+        username=username,
+        hashed_password=hashed_password,
+        full_name="Test User",
+        is_active=True
+    )
+    
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    
+    return {
+        "success": True,
+        "message": "Test user created successfully",
+        "user": {
+            "email": email,
+            "username": username,
+            "password": password
+        }
+    }
 
 @router.post("/register")
 async def register(

@@ -1,13 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
-from sqlalchemy.orm import Session
-from typing import Dict, Any, List
+from typing import List, Dict, Any
 import json
+from sqlalchemy.orm import Session
 
-from ..core.database import get_db
-from ..core.security import verify_token
-from ..models.user import User
-from ..services.ai_agent import AIAgentService
+# Fix the import paths - use absolute imports
+from app.core.database import get_db
+from app.core.security import verify_token
+from app.models.user import User
+from app.services.ai_agent import AIAgentService
 
 router = APIRouter()
 security = HTTPBearer()

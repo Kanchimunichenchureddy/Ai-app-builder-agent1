@@ -59,6 +59,7 @@ import {
   Link as LinkIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import AIDashboard from '../components/dashboard/AIDashboard';
 
 // Consistent color palette and styling across all components
 const theme = {
@@ -1373,6 +1374,13 @@ function Dashboard() {
             </ActionCard>
           ))}
         </QuickActions>
+      </Section>
+      
+      <Section>
+        <SectionHeader>
+          <SectionTitle>AI-Powered Analytics</SectionTitle>
+        </SectionHeader>
+        <AIDashboard />
       </Section>
       
       <Section>
