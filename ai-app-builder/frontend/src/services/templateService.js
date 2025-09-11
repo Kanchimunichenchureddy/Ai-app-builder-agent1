@@ -87,15 +87,11 @@ class TemplateService {
       techStack: {
         frontend: 'react',
         backend: 'fastapi',
-        database: 'mysql',
-        charts: 'chart.js'
+        database: 'mysql'
       },
       components: {
         frontend: [
           'Dashboard.js',
-          'Charts/LineChart.js',
-          'Charts/BarChart.js', 
-          'Charts/PieChart.js',
           'Widgets/KPICard.js',
           'Widgets/StatCard.js',
           'Reports/ReportGenerator.js',
@@ -461,11 +457,6 @@ class TemplateService {
       "axios": "^1.6.2",
       "styled-components": "^6.1.6"
     };
-
-    if (template.techStack.charts === 'chart.js') {
-      dependencies["chart.js"] = "^4.4.0";
-      dependencies["react-chartjs-2"] = "^5.2.0";
-    }
 
     if (template.techStack.editor === 'quill') {
       dependencies["react-quill"] = "^2.0.0";

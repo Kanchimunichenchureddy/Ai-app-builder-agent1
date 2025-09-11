@@ -17,6 +17,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AIChat from './pages/AIChat';
 import Integrations from './pages/Integrations';
+// Removed Charts import
 
 // Services
 import { AuthProvider, useAuth } from './services/auth';
@@ -182,6 +183,7 @@ function AppContent() {
             <Route path="/deploy" element={<Deploy />} />
             <Route path="/ai-chat" element={<AIChat />} />
             <Route path="/integrations" element={<Integrations />} />
+            {/* Removed Charts route */}
             <Route path="*" element={<Home />} />
           </Routes>
         </ContentArea>

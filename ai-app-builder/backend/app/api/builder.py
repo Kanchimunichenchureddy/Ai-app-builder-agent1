@@ -1,18 +1,19 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPBearer
-from sqlalchemy.orm import Session
 from typing import List, Dict, Any
+import json
 import os
-import shutil
+from sqlalchemy.orm import Session
 from pathlib import Path
 
-from ..core.database import get_db
-from ..core.security import verify_token
-from ..models.user import User
-from ..models.project import Project, ProjectStatus, ProjectType
-from ..services.ai_agent import AIAgentService
-from ..services.code_generator import CodeGenerator
-from ..services.deployer import DeployerService
+# Fix the import paths - use absolute imports
+from app.core.database import get_db
+from app.core.security import verify_token
+from app.models.user import User
+from app.models.project import Project, ProjectStatus, ProjectType
+from app.services.ai_agent import AIAgentService
+from app.services.code_generator import CodeGenerator
+from app.services.deployer import DeployerService
 
 router = APIRouter()
 security = HTTPBearer()
@@ -579,3 +580,96 @@ async def save_project_files(project_id: int, files: Dict[str, str]) -> str:
             f.write(content)
     
     return str(project_dir.absolute())
+
+# Add the missing chat endpoint
+@router.post("/chat")
+async def chat_with_ai(
+    chat_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Chat with AI assistant for application building.
+    """
+    try:
+        message = chat_data.get("message", "")
+        context = chat_data.get("context", {})
+        
+        if not message:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Message is required"
+            )
+        
+        # Add user ID to context for conversation history tracking
+        context["user_id"] = current_user.id
+        
+        # Use AI agent to generate response with enhanced context
+        response = await ai_agent.chat_with_user(message, context)
+        
+        return {
+            "success": True,
+            "response": response,
+            "timestamp": "2024-01-01T00:00:00Z"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Chat failed: {str(e)}"
+        )
+
+@router.post("/suggest-improvements")
+async def suggest_improvements(
+    improvement_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Suggest improvements for an existing project.
+    """
+    try:
+        project_data = improvement_data.get("project_data", {})
+        user_feedback = improvement_data.get("feedback", "")
+        
+        # Use AI agent to suggest improvements
+        suggestions = await ai_agent.suggest_improvements(project_data, user_feedback)
+        
+        return {
+            "success": True,
+            "suggestions": suggestions.get("suggestions", ""),
+            "message": "Improvement suggestions generated"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Improvement suggestions failed: {str(e)}"
+        )
+
+@router.post("/generate-documentation")
+async def generate_documentation(
+    doc_data: Dict[str, Any],
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Generate documentation for a project.
+    """
+    try:
+        project_data = doc_data.get("project_data", {})
+        
+        # Use AI agent to generate documentation
+        documentation = await ai_agent.generate_documentation(project_data)
+        
+        return {
+            "success": True,
+            "documentation": documentation,
+            "message": "Documentation generated"
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Documentation generation failed: {str(e)}"
+        )

@@ -2,8 +2,8 @@ from typing import Dict, List, Optional, Any
 import json
 import os
 from pathlib import Path
-from .integrations.openai_service import OpenAIService
-from .integrations.gemini_service import GeminiService
+# Replace OpenAI and Gemini imports with OpenRouter
+from .integrations.openrouter_service import OpenRouterService
 
 class FrameworkGenerator:
     """
@@ -12,8 +12,8 @@ class FrameworkGenerator:
     """
     
     def __init__(self):
-        self.openai_service = OpenAIService()
-        self.gemini_service = GeminiService()
+        # Use OpenRouter service instead of OpenAI and Gemini
+        self.openrouter_service = OpenRouterService()
         
         # Supported frameworks
         self.frontend_frameworks = {

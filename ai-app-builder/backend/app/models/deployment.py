@@ -53,6 +53,6 @@ class Deployment(Base):
     project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Relationships
+    # Relationships - using string references to avoid circular imports
     project = relationship("Project", back_populates="deployments")
     user = relationship("User", back_populates="deployments")

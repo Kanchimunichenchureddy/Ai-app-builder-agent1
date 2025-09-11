@@ -54,6 +54,6 @@ class Project(Base):
     # Foreign Keys
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     
-    # Relationships
+    # Relationships - using string references to avoid circular imports
     owner = relationship("User", back_populates="projects")
     deployments = relationship("Deployment", back_populates="project", cascade="all, delete-orphan")

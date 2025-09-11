@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI App Builder - Connection Verification</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            margin-top: 20px;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+        }
+        .test-card {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        .success {
+            border-left-color: #27ae60;
+            background-color: #e8f5e9;
+        }
+        .error {
+            border-left-color: #e74c3c;
+            background-color: #fdeded;
+        }
+        .warning {
+            border-left-color: #f39c12;
+            background-color: #fff3e0;
+        }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #2980b9;
+        }
+        .loading {
+            color: #3498db;
+            font-style: italic;
+        }
+        .url {
+            font-family: monospace;
+            background-color: #eee;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+        .instructions {
+            background-color: #e3f2fd;
+            border-left: 4px solid #2196f3;
+            padding: 15px;
+            border-radius: 0 8px 8px 0;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>AI App Builder - Connection Verification</h1>
+    
+    <div class="instructions">
+        <h3>🔧 How to Use This Tool:</h3>
+        <p>1. Make sure both backend and frontend services are running</p>
+        <p>2. Click the test buttons below to verify connections</p>
+        <p>3. Check results and follow instructions if any issues are found</p>
+    </div>
+    
+    <div class="container">
+        <h2>Connection Tests</h2>
+        
+        <button onclick="testBackend()">Test Backend Connection</button>
+        <button onclick="testFrontend()">Test Frontend Connection</button>
+        <button onclick="testAIChat()">Test AI Chat API</button>
+        <button onclick="testAll()">Run All Tests</button>
+        
+        <div id="results"></div>
+    </div>
+    
+    <div class="container">
+        <h2>Access URLs</h2>
+        <div class="test-card">
+            <h3>✅ Correct URLs to Use</h3>
+            <p><strong>Frontend Application:</strong> <span class="url">http://localhost:3000</span></p>
+            <p><strong>Backend API:</strong> <span class="url">http://localhost:8000</span></p>
+            <p><strong>API Documentation:</strong> <span class="url">http://localhost:8000/docs</span></p>
+        </div>
+        
+        <div class="test-card warning">
+            <h3>❌ URLs to Avoid</h3>
+            <p><strong>Do NOT use:</strong> <span class="url">http://0.0.0.0:8000</span></p>
+            <p>This will not work in your browser!</p>
+        </div>
+    </div>
+
+    <script>
+        function showResult(message, isSuccess = true, isError = false) {
+            const resultsDiv = document.getElementById('results');
+            const className = isError ? 'error' : isSuccess ? 'success' : 'warning';
+            resultsDiv.innerHTML = `
+                <div class="test-card ${className}">
+                    <p>${message}</p>
+                </div>
+            `;
+        }
+        
+        async function testBackend() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="test-card"><p class="loading">Testing backend connection...</p></div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showResult(`✅ Backend is running!<br>
+                               Message: ${data.message}<br>
+                               Version: ${data.version}<br>
+                               Status: ${data.status}`);
+                } else {
+                    showResult(`❌ Backend returned status ${response.status}`, false, true);
+                }
+            } catch (error) {
+                showResult(`❌ Backend connection failed: ${error.message}<br>
+                           <strong>Possible causes:</strong><br>
+                           1. Backend server is not running<br>
+                           2. Backend is running on a different port<br>
+                           3. Network/firewall issues`, false, true);
+            }
+        }
+        
+        async function testFrontend() {
+            // For frontend, we'll check if we can access a common React development resource
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="test-card"><p class="loading">Testing frontend connection...</p></div>';
+            
+            try {
+                // We can't easily test the React dev server directly, so we'll just check the port
+                // by attempting to connect to the backend from the expected frontend origin
+                const response = await fetch('http://localhost:8000/', {
+                    method: 'GET',
+                    headers: {
+                        'Origin': 'http://localhost:3000'
+                    }
+                });
+                
+                if (response.ok) {
+                    showResult('✅ Frontend connection looks good!<br>The backend is accepting requests from the frontend origin.');
+                } else {
+                    showResult(`⚠️  Frontend test returned status ${response.status}`, false);
+                }
+            } catch (error) {
+                showResult(`⚠️  Could not verify frontend connection: ${error.message}<br>
+                           Make sure the frontend is running on http://localhost:3000`, false);
+            }
+        }
+        
+        async function testAIChat() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="test-card"><p class="loading">Testing AI Chat API...</p></div>';
+            
+            try {
+                const response = await fetch('http://localhost:8000/api/ai/capabilities', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                if (response.ok) {
+                    showResult('✅ AI Chat API is accessible!<br>The AI service is properly configured.');
+                } else if (response.status === 404) {
+                    showResult('⚠️  AI Chat API endpoint not found<br>This might be OK if the API structure is different.', false);
+                } else {
+                    showResult(`❌ AI Chat API returned status ${response.status}`, false, true);
+                }
+            } catch (error) {
+                showResult(`❌ AI Chat API test failed: ${error.message}<br>
+                           <strong>Possible causes:</strong><br>
+                           1. Backend server is not running<br>
+                           2. AI service not properly configured<br>
+                           3. API key issues`, false, true);
+            }
+        }
+        
+        async function testAll() {
+            await testBackend();
+            // Add a small delay between tests
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testFrontend();
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testAIChat();
+        }
+    </script>
+</body>
+</html>

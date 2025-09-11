@@ -1,7 +1,8 @@
+from app.core.config import settings
+import google.generativeai as genai
 from typing import Dict, Any
-import json
-from ..core.config import settings
 import httpx
+import json
 
 class GeminiService:
     """Service for Google Gemini AI integration."""
@@ -9,8 +10,9 @@ class GeminiService:
     def __init__(self):
         self.api_key = settings.GEMINI_API_KEY
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
-        self.model = "gemini-pro"
-        
+        # Use the correct model name for Gemini
+        self.model = "gemini-1.5-pro-latest"
+    
     async def generate_response(self, system_prompt: str, user_prompt: str) -> str:
         """Generate response using Gemini AI."""
         if not self.api_key:

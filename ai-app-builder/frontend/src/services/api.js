@@ -29,7 +29,22 @@ api.interceptors.response.use(
   },
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
+      // Check if we're in demo mode
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) {
+        try {
+          const userData = JSON.parse(savedUser);
+          if (userData.email === 'demo@appforge.dev') {
+            // In demo mode, don't redirect to login
+            console.warn('Demo mode: Ignoring 401 error');
+            return Promise.reject(error);
+          }
+        } catch (e) {
+          // If parsing fails, continue with normal flow
+        }
+      }
+      
+      // Token expired or invalid - only redirect if not in demo mode
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/login';
