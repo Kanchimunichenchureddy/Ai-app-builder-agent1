@@ -183,28 +183,6 @@ CREATE TABLE templates (
     FOREIGN KEY (created_by) REFERENCES users(id) ON DELETE SET NULL
 );
 
--- API Keys table (for storing user's external API configurations)
-CREATE TABLE api_keys (
-    id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT NOT NULL,
-    
-    service_name VARCHAR(100) NOT NULL,
-    api_key_encrypted TEXT NOT NULL,
-    
-    -- Configuration
-    is_active BOOLEAN DEFAULT TRUE,
-    
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
-    INDEX idx_user (user_id),
-    INDEX idx_service (service_name),
-    INDEX idx_active (is_active),
-    
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_user_service (user_id, service_name)
-);
-
 -- Insert default demo user
 INSERT INTO users (email, username, hashed_password, full_name, is_active) 
 VALUES (

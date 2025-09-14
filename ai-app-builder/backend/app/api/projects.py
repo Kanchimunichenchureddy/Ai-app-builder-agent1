@@ -9,6 +9,7 @@ from app.core.database import get_db
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.project import Project, ProjectStatus, ProjectType
+from app.models.project_file import ProjectFile
 
 router = APIRouter()
 security = HTTPBearer()
@@ -222,18 +223,81 @@ async def get_project_files(
             detail="Project not found"
         )
     
-    if not project.project_path:
-        return {
-            "success": True,
-            "files": {},
-            "message": "No files generated yet"
+    # Get all files for this project
+    files = db.query(ProjectFile).filter(ProjectFile.project_id == project_id).all()
+    
+    # Organize files into a tree structure
+    file_tree = {}
+    for file in files:
+        path_parts = file.file_path.split('/')
+        current_level = file_tree
+        
+        # Navigate to the correct position in the tree
+        for i, part in enumerate(path_parts[:-1]):
+            if part not in current_level:
+                current_level[part] = {}
+            current_level = current_level[part]
+        
+        # Add the file at the leaf node
+        filename = path_parts[-1]
+        current_level[filename] = {
+            "id": file.id,
+            "name": file.file_name,
+            "path": file.file_path,
+            "type": file.file_type,
+            "size": file.file_size,
+            "created_at": file.created_at.isoformat() if file.created_at else None
         }
     
-    # TODO: Implement file tree reading
     return {
         "success": True,
-        "files": {},
-        "message": "File listing not implemented yet"
+        "files": file_tree,
+        "count": len(files),
+        "message": f"Retrieved {len(files)} files for project {project.name}"
+    }
+
+@router.get("/{project_id}/file/{file_id}")
+async def get_project_file_content(
+    project_id: int,
+    file_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get content of a specific project file."""
+    project = db.query(Project).filter(
+        Project.id == project_id,
+        Project.owner_id == current_user.id
+    ).first()
+    
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Project not found"
+        )
+    
+    file = db.query(ProjectFile).filter(
+        ProjectFile.id == file_id,
+        ProjectFile.project_id == project_id
+    ).first()
+    
+    if not file:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="File not found"
+        )
+    
+    return {
+        "success": True,
+        "file": {
+            "id": file.id,
+            "name": file.file_name,
+            "path": file.file_path,
+            "content": file.file_content,
+            "type": file.file_type,
+            "size": file.file_size,
+            "created_at": file.created_at.isoformat() if file.created_at else None
+        },
+        "message": f"Retrieved content for file {file.file_name}"
     }
 
 @router.get("/stats/overview")

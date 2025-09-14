@@ -4,40 +4,8 @@ import os
 from pathlib import Path
 from app.core.config import settings
 from app.services.integrations.openrouter_service import OpenRouterService
-
-# Add placeholder classes for missing components
-class CodeGenerator:
-    async def generate_react_app(self, analysis: Dict[str, Any]) -> Dict[str, str]:
-        return {"App.js": "// React app code", "index.js": "// Index code"}
-    
-    async def generate_fastapi_app(self, analysis: Dict[str, Any]) -> Dict[str, str]:
-        return {"main.py": "# FastAPI app code", "models.py": "# Models code"}
-    
-    async def generate_database_schema(self, analysis: Dict[str, Any]) -> Dict[str, str]:
-        return {"schema.sql": "-- Database schema"}
-    
-    async def generate_deployment_config(self, analysis: Dict[str, Any]) -> Dict[str, str]:
-        return {"Dockerfile": "# Docker configuration"}
-
-class FrameworkGenerator:
-    def get_supported_frameworks(self) -> Dict[str, Any]:
-        return {
-            "frontend": ["react", "vue", "angular", "nextjs", "svelte"],
-            "backend": ["fastapi", "django", "express", "flask", "springboot"],
-            "database": ["mysql", "postgresql", "mongodb", "sqlite", "redis"]
-        }
-    
-    async def generate_project_with_frameworks(
-        self, frontend: str, backend: str, database: str, 
-        analysis: Dict[str, Any], project_name: str
-    ) -> Dict[str, Any]:
-        return {
-            "name": project_name,
-            "frontend": frontend,
-            "backend": backend,
-            "database": database,
-            "files": {"example.js": "// Example file"}
-        }
+from app.services.code_generator import CodeGenerator  # Import the real CodeGenerator
+from app.services.framework_generator import FrameworkGenerator  # Import the real FrameworkGenerator
 
 class AIAgentService:
     """
@@ -48,7 +16,7 @@ class AIAgentService:
     def __init__(self):
         # Remove other services and only use OpenRouter
         self.openrouter_service = OpenRouterService()
-        # Initialize missing components
+        # Initialize real components
         self.code_generator = CodeGenerator()
         self.framework_generator = FrameworkGenerator()
         # Conversation history for context
@@ -70,6 +38,8 @@ class AIAgentService:
         self.model_preferences = {
             "openrouter": "mistralai/mistral-7b-instruct"  # Using a free model
         }
+        # Track if we've detected API issues
+        self.openrouter_api_working = True
         print(f"AI agent initialized with LLM service: {self.active_llm_service}")
     
     def _determine_best_llm_service(self):
@@ -87,7 +57,7 @@ class AIAgentService:
     
     async def _generate_response_with_best_service(self, system_prompt: str, user_prompt: str, max_tokens: int = 4000) -> str:
         """
-        Generate response using OpenRouter service.
+        Generate response using OpenRouter service with fallback to local generation.
         """
         try:
             if self.active_llm_service == "openrouter" and settings.OPENROUTER_API_KEY:
@@ -101,28 +71,33 @@ class AIAgentService:
                     temperature=0.7
                 )
                 # Check if we got a valid response (not a fallback)
-                if not response.startswith("// Fallback") and "insufficient_quota" not in response and "Too Many Requests" not in response and "429" not in response:
+                if not response.startswith("// Fallback") and "insufficient_quota" not in response and "Too Many Requests" not in response and "429" not in response and "User not found" not in response and "Request timeout" not in response:
                     return response
                 else:
-                    if "insufficient_quota" in response or "Too Many Requests" in response or "429" in response:
+                    # Mark API as not working if we get specific errors
+                    if "User not found" in response:
+                        self.openrouter_api_working = False
+                        error_message = "OpenRouter: Invalid API key or account not found"
+                    elif "insufficient_quota" in response or "Too Many Requests" in response or "429" in response:
                         error_message = "OpenRouter: API quota exceeded or rate limit reached"
+                    elif "Request timeout" in response:
+                        error_message = "OpenRouter: Request timeout - service is taking too long to respond"
                     else:
                         error_message = "OpenRouter: Service unavailable"
                     
-                    return f"""// Fallback response: AI service is currently unavailable.
-
-Configuration Issues Detected:
-  - {error_message}
-
-Please resolve the following:
-1. Check your OpenRouter API key and quota limits
-2. Verify your internet connection
-
-Using fallback mode - limited functionality available."""
+                    return self._generate_fallback_response(error_message)
                         
         except Exception as e:
+            # Mark API as not working on exception
+            self.openrouter_api_working = False
             error_message = f"OpenRouter: {str(e)}"
-            return f"""// Fallback response: AI service is currently unavailable.
+            return self._generate_fallback_response(error_message)
+    
+    def _generate_fallback_response(self, error_message: str) -> str:
+        """
+        Generate a fallback response when AI services are not available.
+        """
+        return f"""// Fallback response: AI service is currently unavailable.
 
 Configuration Issues Detected:
   - {error_message}
@@ -130,8 +105,29 @@ Configuration Issues Detected:
 Please resolve the following:
 1. Check your OpenRouter API key and quota limits
 2. Verify your internet connection
+3. Visit https://openrouter.ai/ to check your account status
+4. Follow the setup guide in OPENROUTER_SETUP.md
 
-Using fallback mode - limited functionality available."""
+Using fallback mode - limited functionality available.
+
+Fallback Response:
+I'm unable to access the AI service at the moment. Here's some general guidance:
+
+For application development:
+1. Define clear project requirements and scope
+2. Choose appropriate technologies for your needs
+3. Plan your database structure early
+4. Implement user authentication and security measures
+5. Test your application thoroughly
+
+For code generation:
+1. Break down complex problems into smaller components
+2. Follow established design patterns and best practices
+3. Write clean, readable, and well-documented code
+4. Include proper error handling
+5. Consider performance and scalability from the start
+
+If you need specific help, please try again later when the AI service is available."""
     
     async def chat_with_user(self, message: str, context: Dict[str, Any] = None) -> str:
         """

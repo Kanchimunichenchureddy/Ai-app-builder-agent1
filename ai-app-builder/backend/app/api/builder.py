@@ -11,13 +11,13 @@ from app.core.database import get_db
 from app.core.security import verify_token
 from app.models.user import User
 from app.models.project import Project, ProjectStatus, ProjectType
+from app.models.project_file import ProjectFile  # Add this import
 from app.services.ai_agent import AIAgentService
 from app.services.code_generator import CodeGenerator
 from app.services.deployer import DeployerService
 
 router = APIRouter()
 security = HTTPBearer()
-
 ai_agent = AIAgentService()
 code_generator = CodeGenerator()
 deployer = DeployerService()
@@ -88,6 +88,8 @@ async def generate_project(
         user_request = project_data.get("request", "")
         analysis = project_data.get("analysis", {})
         tech_stack = project_data.get("tech_stack", {})
+        auto_deploy = project_data.get("auto_deploy", False)  # New parameter for auto deployment
+        deploy_platform = project_data.get("deploy_platform", "docker")  # Default to docker
         
         if not project_name or not user_request:
             raise HTTPException(
@@ -131,15 +133,15 @@ async def generate_project(
             # Use AI agent to generate complete project with custom tech stack
             generated_project = await ai_agent.generate_project(analysis, project_name, tech_stack)
             
-            # Save generated files to disk
-            project_path = await save_project_files(project.id, generated_project["files"])
+            # Save generated files to disk and database
+            project_path = await save_project_files(project.id, generated_project["files"], db)
             
             # Update project with file path
             project.project_path = project_path
             project.status = ProjectStatus.ACTIVE
             db.commit()
             
-            return {
+            response_data = {
                 "success": True,
                 "project": {
                     "id": project.id,
@@ -153,6 +155,80 @@ async def generate_project(
                 "files_generated": len(generated_project["files"]),
                 "message": f"🎉 {project_name} has been successfully generated!"
             }
+            
+            # Automatically deploy if requested
+            deployment_result = None
+            if auto_deploy:
+                try:
+                    project.status = ProjectStatus.DEPLOYING
+                    db.commit()
+                    
+                    # Create deployment record
+                    from app.models.deployment import Deployment, DeploymentStatus, DeploymentPlatform
+                    deployment = Deployment(
+                        name=f"{project_name}-deployment",
+                        platform=DeploymentPlatform(deploy_platform),
+                        status=DeploymentStatus.PENDING,
+                        project_id=project.id,
+                        user_id=current_user.id,
+                        config={}
+                    )
+                    db.add(deployment)
+                    db.commit()
+                    db.refresh(deployment)
+                    
+                    # Start deployment process
+                    deployment.status = DeploymentStatus.BUILDING
+                    db.commit()
+                    
+                    # Deploy based on platform with retry mechanism
+                    if deploy_platform == "docker":
+                        deployment_result = await deployer.deploy_to_docker(project_path, project.name, retry=True)
+                    elif deploy_platform == "vercel":
+                        deployment_result = await deployer.deploy_to_vercel(project_path, project.name, retry=True)
+                    elif deploy_platform == "netlify":
+                        deployment_result = await deployer.deploy_to_netlify(project_path, project.name, retry=True)
+                    elif deploy_platform == "aws":
+                        deployment_result = await deployer.deploy_to_aws(project_path, project.name, {}, retry=True)
+                    elif deploy_platform == "gcp":
+                        deployment_result = await deployer.deploy_to_gcp(project_path, project.name, {}, retry=True)
+                    elif deploy_platform == "azure":
+                        deployment_result = await deployer.deploy_to_azure(project_path, project.name, {}, retry=True)
+                    else:
+                        raise Exception(f"Unsupported deployment platform: {deploy_platform}")
+                    
+                    # Update deployment based on result
+                    if deployment_result["success"]:
+                        deployment.status = DeploymentStatus.DEPLOYED
+                        deployment.url = deployment_result.get("urls", {}).get("frontend")
+                        deployment.api_url = deployment_result.get("urls", {}).get("backend")
+                        deployment.deployment_logs = deployment_result.get("message", "")
+                        project.status = ProjectStatus.DEPLOYED
+                    else:
+                        deployment.status = DeploymentStatus.FAILED
+                        deployment.error_message = deployment_result.get("error", "Unknown error")
+                        project.status = ProjectStatus.ERROR
+                    
+                    db.commit()
+                    
+                    response_data["deployment"] = {
+                        "success": deployment_result["success"],
+                        "platform": deploy_platform,
+                        "url": deployment.url,
+                        "message": deployment_result.get("message", "")
+                    }
+                    
+                except Exception as deploy_error:
+                    # Handle deployment error
+                    project.status = ProjectStatus.ERROR
+                    db.commit()
+                    response_data["deployment"] = {
+                        "success": False,
+                        "error": str(deploy_error),
+                        "message": f"Deployment failed: {str(deploy_error)}"
+                    }
+            
+            return response_data
             
         except Exception as e:
             # Update project status to error
@@ -321,7 +397,7 @@ async def create_from_template(
         db.commit()
         
         generated_project = await ai_agent.generate_project(analysis, project_name)
-        project_path = await save_project_files(project.id, generated_project["files"])
+        project_path = await save_project_files(project.id, generated_project["files"], db)
         
         project.project_path = project_path
         project.status = ProjectStatus.ACTIVE
@@ -472,6 +548,8 @@ async def generate_project_with_custom_stack(
         frontend_framework = project_data.get("frontend_framework", "react")
         backend_framework = project_data.get("backend_framework", "fastapi")
         database = project_data.get("database", "mysql")
+        auto_deploy = project_data.get("auto_deploy", False)  # New parameter for auto deployment
+        deploy_platform = project_data.get("deploy_platform", "docker")  # Default to docker
         
         if not project_name or not analysis:
             raise HTTPException(
@@ -527,13 +605,13 @@ async def generate_project_with_custom_stack(
             )
             
             # Save generated files
-            project_path = await save_project_files(project.id, generated_project["files"])
+            project_path = await save_project_files(project.id, generated_project["files"], db)
             
             project.project_path = project_path
             project.status = ProjectStatus.ACTIVE
             db.commit()
             
-            return {
+            response_data = {
                 "success": True,
                 "project": {
                     "id": project.id,
@@ -552,6 +630,80 @@ async def generate_project_with_custom_stack(
                 "message": f"🎉 {project_name} generated with {frontend_framework} + {backend_framework} + {database}!"
             }
             
+            # Automatically deploy if requested
+            deployment_result = None
+            if auto_deploy:
+                try:
+                    project.status = ProjectStatus.DEPLOYING
+                    db.commit()
+                    
+                    # Create deployment record
+                    from app.models.deployment import Deployment, DeploymentStatus, DeploymentPlatform
+                    deployment = Deployment(
+                        name=f"{project_name}-deployment",
+                        platform=DeploymentPlatform(deploy_platform),
+                        status=DeploymentStatus.PENDING,
+                        project_id=project.id,
+                        user_id=current_user.id,
+                        config={}
+                    )
+                    db.add(deployment)
+                    db.commit()
+                    db.refresh(deployment)
+                    
+                    # Start deployment process
+                    deployment.status = DeploymentStatus.BUILDING
+                    db.commit()
+                    
+                    # Deploy based on platform with retry mechanism
+                    if deploy_platform == "docker":
+                        deployment_result = await deployer.deploy_to_docker(project_path, project.name, retry=True)
+                    elif deploy_platform == "vercel":
+                        deployment_result = await deployer.deploy_to_vercel(project_path, project.name, retry=True)
+                    elif deploy_platform == "netlify":
+                        deployment_result = await deployer.deploy_to_netlify(project_path, project.name, retry=True)
+                    elif deploy_platform == "aws":
+                        deployment_result = await deployer.deploy_to_aws(project_path, project.name, {}, retry=True)
+                    elif deploy_platform == "gcp":
+                        deployment_result = await deployer.deploy_to_gcp(project_path, project.name, {}, retry=True)
+                    elif deploy_platform == "azure":
+                        deployment_result = await deployer.deploy_to_azure(project_path, project.name, {}, retry=True)
+                    else:
+                        raise Exception(f"Unsupported deployment platform: {deploy_platform}")
+                    
+                    # Update deployment based on result
+                    if deployment_result["success"]:
+                        deployment.status = DeploymentStatus.DEPLOYED
+                        deployment.url = deployment_result.get("urls", {}).get("frontend")
+                        deployment.api_url = deployment_result.get("urls", {}).get("backend")
+                        deployment.deployment_logs = deployment_result.get("message", "")
+                        project.status = ProjectStatus.DEPLOYED
+                    else:
+                        deployment.status = DeploymentStatus.FAILED
+                        deployment.error_message = deployment_result.get("error", "Unknown error")
+                        project.status = ProjectStatus.ERROR
+                    
+                    db.commit()
+                    
+                    response_data["deployment"] = {
+                        "success": deployment_result["success"],
+                        "platform": deploy_platform,
+                        "url": deployment.url,
+                        "message": deployment_result.get("message", "")
+                    }
+                    
+                except Exception as deploy_error:
+                    # Handle deployment error
+                    project.status = ProjectStatus.ERROR
+                    db.commit()
+                    response_data["deployment"] = {
+                        "success": False,
+                        "error": str(deploy_error),
+                        "message": f"Deployment failed: {str(deploy_error)}"
+                    }
+            
+            return response_data
+            
         except Exception as e:
             project.status = ProjectStatus.ERROR
             db.commit()
@@ -565,19 +717,48 @@ async def generate_project_with_custom_stack(
             detail=f"Custom stack generation failed: {str(e)}"
         )
 
-async def save_project_files(project_id: int, files: Dict[str, str]) -> str:
+async def save_project_files(project_id: int, files: Dict[str, str], db: Session) -> str:
     """
-    Save generated project files to disk.
+    Save generated project files to disk and database.
     """
     project_dir = Path(f"generated_projects/project_{project_id}")
     project_dir.mkdir(parents=True, exist_ok=True)
     
+    # Clear existing files for this project
+    db.query(ProjectFile).filter(ProjectFile.project_id == project_id).delete()
+    
+    saved_files = []
+    
     for file_path, content in files.items():
-        full_path = project_dir / file_path
-        full_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        with open(full_path, 'w', encoding='utf-8') as f:
-            f.write(content)
+        try:
+            full_path = project_dir / file_path
+            full_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Write file to disk
+            with open(full_path, 'w', encoding='utf-8') as f:
+                f.write(content)
+            
+            # Save file info to database
+            file_record = ProjectFile(
+                project_id=project_id,
+                file_path=file_path,
+                file_name=os.path.basename(file_path),
+                file_content=content[:65535] if content else "",  # Limit content size for database
+                file_type=os.path.splitext(file_path)[1][1:] if '.' in file_path else '',
+                file_size=len(content) if content else 0
+            )
+            db.add(file_record)
+            saved_files.append(file_record)
+            
+        except Exception as e:
+            print(f"Error saving file {file_path}: {str(e)}")
+            # Continue with other files even if one fails
+    
+    try:
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise Exception(f"Failed to save files to database: {str(e)}")
     
     return str(project_dir.absolute())
 

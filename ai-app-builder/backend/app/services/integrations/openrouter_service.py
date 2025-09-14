@@ -8,7 +8,7 @@ class OpenRouterService:
     
     def __init__(self):
         self.api_key = settings.OPENROUTER_API_KEY
-        self.base_url = "https://api.openrouter.ai/api/v1"  # Updated URL
+        self.base_url = "https://openrouter.ai/api/v1"  # Changed from api.openrouter.ai to openrouter.ai
         # Use a free model that doesn't require payment
         self.default_model = "mistralai/mistral-7b-instruct"  # Free model
         
@@ -27,7 +27,8 @@ class OpenRouterService:
         if not self.api_key:
             error_message = "OpenRouter API key is not configured. Please set the OPENROUTER_API_KEY environment variable."
             print(error_message)
-            raise ConnectionError(error_message)
+            # Return a fallback response instead of raising an exception
+            return f"// Fallback response: {error_message}"
             
         headers = {
             "Authorization": f"Bearer {self.api_key}",
@@ -52,18 +53,53 @@ class OpenRouterService:
                     f"{self.base_url}/chat/completions",
                     headers=headers,
                     json=data,
-                    timeout=60.0
+                    timeout=30.0  # Reduced timeout for better user experience
                 )
+                # Check for specific error responses
+                if response.status_code == 401:
+                    error_text = response.text
+                    if "User not found" in error_text:
+                        error_message = "OpenRouter API error: Invalid API key or account not found. Please check your API key at https://openrouter.ai/"
+                        print(error_message)
+                        # Return a fallback response instead of raising an exception
+                        return f"// Fallback response: {error_message}"
+                    else:
+                        error_message = f"OpenRouter API error: Unauthorized (401). Response: {error_text}"
+                        print(error_message)
+                        # Return a fallback response instead of raising an exception
+                        return f"// Fallback response: {error_message}"
+                elif response.status_code == 402:
+                    error_message = "OpenRouter API error: Payment required (402). Please check your account balance at https://openrouter.ai/"
+                    print(error_message)
+                    # Return a fallback response instead of raising an exception
+                    return f"// Fallback response: {error_message}"
+                elif response.status_code == 429:
+                    error_message = "OpenRouter API error: Rate limit exceeded (429). Please try again later."
+                    print(error_message)
+                    # Return a fallback response instead of raising an exception
+                    return f"// Fallback response: {error_message}"
+                elif response.status_code >= 400:
+                    error_message = f"OpenRouter API error: HTTP {response.status_code}. Response: {response.text}"
+                    print(error_message)
+                    # Return a fallback response instead of raising an exception
+                    return f"// Fallback response: {error_message}"
+                    
                 response.raise_for_status()
                 result = response.json()
                 return result["choices"][0]["message"]["content"]
+        except httpx.TimeoutException as e:
+            error_message = f"OpenRouter API error: Request timeout. The AI service is taking too long to respond."
+            print(error_message)
+            # Return a fallback response instead of raising an exception
+            return f"// Fallback response: {error_message}"
         except Exception as e:
             error_message = f"OpenRouter API error: {e}"
             print(error_message)
             # Add more detailed logging
             import traceback
             traceback.print_exc()
-            raise ConnectionError(error_message)
+            # Return a fallback response instead of raising an exception
+            return f"// Fallback response: {error_message}"
     
     async def generate_code(self, description: str, language: str, framework: str = None) -> str:
         """Generate code using OpenRouter."""

@@ -57,3 +57,4 @@ class Project(Base):
     # Relationships - using string references to avoid circular imports
     owner = relationship("User", back_populates="projects")
     deployments = relationship("Deployment", back_populates="project", cascade="all, delete-orphan")
+    files = relationship("ProjectFile", back_populates="project", cascade="all, delete-orphan")

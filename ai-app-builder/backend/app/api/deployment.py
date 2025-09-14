@@ -94,17 +94,17 @@ async def deploy_project(
         
         # Deploy based on platform
         if platform == "docker":
-            result = await deployer.deploy_to_docker(project.project_path, project.name)
+            result = await deployer.deploy_to_docker(project.project_path, project.name, retry=True)
         elif platform == "vercel":
-            result = await deployer.deploy_to_vercel(project.project_path, project.name)
+            result = await deployer.deploy_to_vercel(project.project_path, project.name, retry=True)
         elif platform == "netlify":
-            result = await deployer.deploy_to_netlify(project.project_path, project.name)
+            result = await deployer.deploy_to_netlify(project.project_path, project.name, retry=True)
         elif platform == "aws":
-            result = await deployer.deploy_to_aws(project.project_path, project.name, deployment.config)
+            result = await deployer.deploy_to_aws(project.project_path, project.name, deployment.config, retry=True)
         elif platform == "gcp":
-            result = await deployer.deploy_to_gcp(project.project_path, project.name, deployment.config)
+            result = await deployer.deploy_to_gcp(project.project_path, project.name, deployment.config, retry=True)
         elif platform == "azure":
-            result = await deployer.deploy_to_azure(project.project_path, project.name, deployment.config)
+            result = await deployer.deploy_to_azure(project.project_path, project.name, deployment.config, retry=True)
         else:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

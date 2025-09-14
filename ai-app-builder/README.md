@@ -39,7 +39,25 @@ This will automatically start both backend and frontend services in separate win
    pip install -r requirements.txt
    ```
 
-3. Start the backend server using one of these methods:
+3. **Configure OpenRouter API Key:**
+   The AI features require an OpenRouter API key. Follow the setup guide:
+   ```bash
+   OPENROUTER_SETUP.md
+   ```
+   
+   Or run the verification script:
+   ```bash
+   # Windows Command Prompt
+   verify_openrouter_key.bat
+   
+   # PowerShell
+   .\verify_openrouter_key.ps1
+   
+   # Direct Python script
+   python verify_openrouter_key.py
+   ```
+
+4. Start the backend server using one of these methods:
    
    **Method 1: Direct command**
    ```bash
@@ -130,7 +148,7 @@ To verify that the backend server is running properly, you can:
 #### 2. PowerShell Command Not Found Error
 
 **Problem:** 
-```
+```bash
 start_server.bat : The term 'start_server.bat' is not recognized
 ```
 
@@ -166,8 +184,16 @@ or
    ```
 3. Test the API key with:
    ```bash
-   python TEST_AI_SERVICE.py
+   # Windows Command Prompt
+   verify_openrouter_key.bat
+   
+   # PowerShell
+   .\verify_openrouter_key.ps1
+   
+   # Direct Python script
+   python verify_openrouter_key.py
    ```
+4. Follow the detailed setup guide in `OPENROUTER_SETUP.md`
 
 ### Server Not Accessible in Browser
 
@@ -206,6 +232,8 @@ For a complete list of endpoints, visit the API documentation at http://localhos
 
 ## Additional Resources
 
+- OpenRouter Setup Guide: `OPENROUTER_SETUP.md`
+- API Key Verification Scripts: `verify_openrouter_key.bat`, `verify_openrouter_key.ps1`, `verify_openrouter_key.py`
 - Detailed fix instructions: `FIX_INSTRUCTIONS.md`
 - Service status checker: `CHECK_SERVICES.py`
 - Connection tester: `TEST_CONNECTION.html`
