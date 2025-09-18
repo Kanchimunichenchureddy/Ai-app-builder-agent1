@@ -32,7 +32,9 @@ import {
   Award,
   Star,
   CheckCircle,
-  ArrowRight
+  ArrowRight,
+  Settings,
+  FolderOpen
 } from 'lucide-react';
 
 const float = keyframes`
@@ -144,6 +146,7 @@ const CTAButton = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  margin: 0 0.5rem;
   
   &:hover {
     transform: translateY(-5px);
@@ -153,6 +156,20 @@ const CTAButton = styled.button`
   @media (max-width: 768px) {
     padding: 1rem 2rem;
     font-size: 1.1rem;
+    margin: 0.5rem;
+  }
+`;
+
+const ButtonGroup = styled.div`
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
   }
 `;
 
@@ -515,6 +532,7 @@ const CTABtn = styled.button`
   display: inline-flex;
   align-items: center;
   gap: 0.75rem;
+  margin: 0 0.5rem;
   
   &:hover {
     transform: translateY(-5px);
@@ -524,6 +542,20 @@ const CTABtn = styled.button`
   @media (max-width: 768px) {
     padding: 1rem 2rem;
     font-size: 1.1rem;
+    margin: 0.5rem;
+  }
+`;
+
+const ButtonGroupCTA = styled.div`
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+  
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: center;
   }
 `;
 
@@ -618,6 +650,14 @@ function Home() {
   const handleGetStarted = () => {
     navigate('/builder');
   };
+  
+  const handleViewProjects = () => {
+    navigate('/projects');
+  };
+  
+  const handleViewSettings = () => {
+    navigate('/integrations'); // Using integrations as settings page
+  };
 
   return (
     <Container>
@@ -632,11 +672,21 @@ function Home() {
             Transform your ideas into production-ready applications in minutes using natural language.
             No coding required.
           </Subtitle>
-          <CTAButton onClick={handleGetStarted}>
-            <Play size={24} />
-            Start Building Now
-            <ArrowRight size={24} />
-          </CTAButton>
+          <ButtonGroup>
+            <CTAButton onClick={handleGetStarted}>
+              <Play size={24} />
+              Start Building Now
+              <ArrowRight size={24} />
+            </CTAButton>
+            <CTAButton onClick={handleViewProjects} style={{ background: 'transparent', color: 'white', border: '2px solid white' }}>
+              <FolderOpen size={24} />
+              My Projects
+            </CTAButton>
+            <CTAButton onClick={handleViewSettings} style={{ background: 'transparent', color: 'white', border: '2px solid white' }}>
+              <Settings size={24} />
+              Settings
+            </CTAButton>
+          </ButtonGroup>
         </HeroContent>
       </HeroSection>
       
@@ -707,11 +757,17 @@ function Home() {
         <CTADescription>
           Join thousands of developers and entrepreneurs who are already using AI App Builder to bring their ideas to life.
         </CTADescription>
-        <CTABtn onClick={handleGetStarted}>
-          <Zap size={24} />
-          Get Started Free
-          <ArrowRight size={24} />
-        </CTABtn>
+        <ButtonGroupCTA>
+          <CTABtn onClick={handleGetStarted}>
+            <Zap size={24} />
+            Get Started Free
+            <ArrowRight size={24} />
+          </CTABtn>
+          <CTABtn onClick={handleViewProjects} style={{ background: 'transparent', color: 'white', border: '2px solid white' }}>
+            <FolderOpen size={24} />
+            View My Projects
+          </CTABtn>
+        </ButtonGroupCTA>
       </CTASection>
     </Container>
   );

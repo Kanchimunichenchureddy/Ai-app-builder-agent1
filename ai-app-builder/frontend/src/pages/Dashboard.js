@@ -48,7 +48,7 @@ import {
   Star,
   // Additional icons for AI Studio-like experience
   FileCode,
-  FileText as FileDocument,
+  FileText,
   ImageIcon,
   Video,
   Music,
@@ -60,6 +60,8 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import AIDashboard from '../components/dashboard/AIDashboard';
+import ProjectsService from '../services/projectsService';
+import toast from 'react-hot-toast';
 
 // Consistent color palette and styling across all components
 const theme = {
@@ -1130,78 +1132,12 @@ const ModalDemoImage = styled.div`
 
 function Dashboard() {
   const navigate = useNavigate();
-  const [projects, setProjects] = useState([
-    {
-      id: 1,
-      name: 'Analytics Dashboard',
-      status: 'completed',
-      createdAt: '2023-06-15',
-      lastModified: '2023-06-18',
-      framework: 'React + FastAPI',
-      deployed: true,
-      techStack: {
-        frontend: 'React',
-        backend: 'FastAPI',
-        database: 'MySQL'
-      },
-      features: ['Charts & Graphs', 'Real-time Data', 'User Management'],
-      previewUrl: 'https://dashboard-demo.example.com'
-    },
-    {
-      id: 2,
-      name: 'E-commerce Store',
-      status: 'in-progress',
-      createdAt: '2023-06-10',
-      lastModified: '2023-06-17',
-      framework: 'Vue + Express',
-      deployed: false,
-      techStack: {
-        frontend: 'Vue.js',
-        backend: 'Express.js',
-        database: 'PostgreSQL'
-      },
-      features: ['Product Catalog', 'Shopping Cart', 'Payment Gateway'],
-      previewUrl: null
-    },
-    {
-      id: 3,
-      name: 'Blog CMS',
-      status: 'completed',
-      createdAt: '2023-06-05',
-      lastModified: '2023-06-12',
-      framework: 'Angular + Django',
-      deployed: true,
-      techStack: {
-        frontend: 'Angular',
-        backend: 'Django',
-        database: 'SQLite'
-      },
-      features: ['Rich Text Editor', 'SEO Tools', 'Media Management'],
-      previewUrl: 'https://blog-demo.example.com'
-    },
-    {
-      id: 4,
-      name: 'Chat Application',
-      status: 'failed',
-      createdAt: '2023-06-01',
-      lastModified: '2023-06-15',
-      framework: 'React + NestJS',
-      deployed: false,
-      techStack: {
-        frontend: 'React',
-        backend: 'NestJS',
-        database: 'MongoDB'
-      },
-      features: ['Real-time Chat', 'File Sharing', 'Push Notifications'],
-      previewUrl: null
-    }
-  ]);
-  
+  const [projects, setProjects] = useState([]);
   const [stats, setStats] = useState({
-    totalProjects: 12,
-    activeProjects: 8,
-    completedProjects: 9,
-    totalDeployments: 15
+    totalProjects: 0,
+    activeProjects: 0,
+    completedProjects: 0,
+    totalDeployments: 0
   });
   
   const [searchTerm, setSearchTerm] = useState('');
@@ -1209,6 +1145,203 @@ function Dashboard() {
   const [filterStatus, setFilterStatus] = useState('all');
   const [selectedProject, setSelectedProject] = useState(null);
   const [showProjectModal, setShowProjectModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch real project data from API
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await ProjectsService.getProjects();
+        
+        // Transform projects to match expected format
+        const transformedProjects = response.projects.map(project => {
+          // Ensure all required fields have default values
+          const createdAt = project.created_at || new Date().toISOString();
+          const updatedAt = project.updated_at || createdAt;
+          
+          // Extract tech stack information properly from the separate fields
+          const frontendFramework = project.frontend_framework || 'React';
+          const backendFramework = project.backend_framework || 'FastAPI';
+          const databaseType = project.database_type || 'MySQL';
+          
+          // Extract deployment information
+          let previewUrl = null;
+          let deployed = false;
+          
+          // Check if project has successful deployments
+          if (project.deployments && project.deployments.length > 0) {
+            const successfulDeployments = project.deployments.filter(d => 
+              d.status === 'deployed' && d.url
+            );
+            
+            if (successfulDeployments.length > 0) {
+              // Use the most recent successful deployment
+              const latestDeployment = successfulDeployments.sort((a, b) => 
+                new Date(b.deployed_at || b.created_at) - new Date(a.deployed_at || a.created_at)
+              )[0];
+              
+              previewUrl = latestDeployment.url;
+              deployed = true;
+            }
+          }
+          
+          return {
+            id: project.id || Math.random(),
+            name: project.name || 'Untitled Project',
+            description: project.description || 'No description provided',
+            status: project.status || 'active',
+            type: project.type || project.project_type || 'web_app',
+            createdAt: createdAt ? new Date(createdAt).toLocaleDateString() : 'Unknown',
+            lastModified: updatedAt ? new Date(updatedAt).toLocaleDateString() : (createdAt ? new Date(createdAt).toLocaleDateString() : 'Unknown'),
+            framework: `${frontendFramework} + ${backendFramework}`,
+            deployed: deployed,
+            techStack: {
+              frontend: frontendFramework,
+              backend: backendFramework,
+              database: databaseType
+            },
+            features: Array.isArray(project.features) ? project.features : (project.features ? [project.features] : ['User Authentication', 'Responsive Design']),
+            integrations: Array.isArray(project.integrations) ? project.integrations : (project.integrations ? [project.integrations] : []),
+            config: project.config || {},
+            previewUrl: previewUrl,
+            deployments: project.deployments || []
+          };
+        });
+        
+        setProjects(transformedProjects);
+        
+        // Update stats
+        const totalProjects = transformedProjects.length;
+        const activeProjects = transformedProjects.filter(p => 
+          (p.status || '').toLowerCase() === 'active' || 
+          (p.status || '').toLowerCase() === 'building' ||
+          (p.status || '').toLowerCase() === 'creating'
+        ).length;
+        const completedProjects = transformedProjects.filter(p => 
+          (p.status || '').toLowerCase() === 'deployed' ||
+          (p.status || '').toLowerCase() === 'completed'
+        ).length;
+        
+        setStats({
+          totalProjects,
+          activeProjects,
+          completedProjects,
+          totalDeployments: completedProjects
+        });
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        // Fallback to mock data if API fails
+        const mockProjects = [
+          {
+            id: 1,
+            name: 'Analytics Dashboard',
+            description: 'Complete analytics dashboard with charts and real-time data visualization',
+            type: 'dashboard',
+            status: 'completed',
+            createdAt: '2023-06-15',
+            lastModified: '2023-06-18',
+            framework: 'React + FastAPI',
+            deployed: true,
+            techStack: {
+              frontend: 'React',
+              backend: 'FastAPI',
+              database: 'MySQL'
+            },
+            features: ['Charts & Graphs', 'Real-time Data', 'User Management'],
+            integrations: ['Google Analytics', 'Stripe'],
+            config: {
+              theme: 'dark',
+              layout: 'responsive'
+            },
+            previewUrl: 'https://dashboard-demo.example.com'
+          },
+          {
+            id: 2,
+            name: 'E-commerce Store',
+            description: 'Full-featured online store with product catalog, shopping cart, and payment processing',
+            type: 'ecommerce',
+            status: 'in-progress',
+            createdAt: '2023-06-10',
+            lastModified: '2023-06-17',
+            framework: 'Vue + Express',
+            deployed: false,
+            techStack: {
+              frontend: 'Vue.js',
+              backend: 'Express.js',
+              database: 'PostgreSQL'
+            },
+            features: ['Product Catalog', 'Shopping Cart', 'Payment Gateway'],
+            integrations: ['Stripe', 'PayPal'],
+            config: {
+              currency: 'USD',
+              tax_rate: 0.08
+            },
+            previewUrl: null
+          },
+          {
+            id: 3,
+            name: 'Blog CMS',
+            description: 'Content management system for creating and managing blog posts with rich text editing',
+            type: 'blog',
+            status: 'completed',
+            createdAt: '2023-06-05',
+            lastModified: '2023-06-12',
+            framework: 'Angular + Django',
+            deployed: true,
+            techStack: {
+              frontend: 'Angular',
+              backend: 'Django',
+              database: 'SQLite'
+            },
+            features: ['Rich Text Editor', 'SEO Tools', 'Media Management'],
+            integrations: ['Cloudinary', 'Google Search Console'],
+            config: {
+              posts_per_page: 10,
+              enable_comments: true
+            },
+            previewUrl: 'https://blog-demo.example.com'
+          },
+          {
+            id: 4,
+            name: 'Chat Application',
+            description: 'Real-time messaging platform with file sharing and push notifications',
+            type: 'chat',
+            status: 'failed',
+            createdAt: '2023-06-01',
+            lastModified: '2023-06-15',
+            framework: 'React + NestJS',
+            deployed: false,
+            techStack: {
+              frontend: 'React',
+              backend: 'NestJS',
+              database: 'MongoDB'
+            },
+            features: ['Real-time Chat', 'File Sharing', 'Push Notifications'],
+            integrations: ['Firebase', 'Twilio'],
+            config: {
+              max_file_size: '10MB',
+              message_history_days: 30
+            },
+            previewUrl: null
+          }
+        ];
+        
+        setProjects(mockProjects);
+        setStats({
+          totalProjects: 12,
+          activeProjects: 8,
+          completedProjects: 9,
+          totalDeployments: 15
+        });
+        setLoading(false);
+      }
+    };
+
+    fetchProjects();
+  }, []);
 
   const filteredProjects = projects.filter(project => {
     const matchesSearch = project.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -1221,11 +1354,95 @@ function Dashboard() {
   };
 
   const handleViewDemo = (project) => {
+    // Check if project has a deployment URL
     if (project.previewUrl) {
-      window.open(project.previewUrl, '_blank');
+      const demoWindow = window.open(project.previewUrl, '_blank');
+      
+      // Show fallback information after a delay
+      setTimeout(() => {
+        toast(`If the demo doesn't load, you can try these alternatives:
+
+` +
+          `1. Check if Docker is running (URL: http://localhost:8080)
+` +
+          `2. Check local development server (URL: http://localhost:3000)
+` +
+          `3. Re-deploy the project`, {
+          duration: 15000,
+          icon: 'ℹ️'
+        });
+      }, 3000);
+      
+      return;
+    } else if (project.deployed) {
+      // For deployed projects, check if we have deployment information
+      if (project.deployments && project.deployments.length > 0) {
+        const successfulDeployments = project.deployments.filter(d => 
+          d.status === 'deployed' && (d.url || d.fallbackUrl)
+        );
+        
+        if (successfulDeployments.length > 0) {
+          // Use the most recent successful deployment
+          const latestDeployment = successfulDeployments.sort((a, b) => 
+            new Date(b.deployed_at || b.created_at) - new Date(a.deployed_at || a.created_at)
+          )[0];
+          
+          // Try primary URL first
+          if (latestDeployment.url) {
+            const demoWindow = window.open(latestDeployment.url, '_blank');
+            
+            // If we have a fallback URL, show information about it
+            if (latestDeployment.fallbackUrl) {
+              setTimeout(() => {
+                toast(`If the primary URL doesn't work, try the fallback: ${latestDeployment.fallbackUrl}`, {
+                  duration: 10000,
+                  icon: 'ℹ️'
+                });
+              }, 3000);
+            }
+            
+            return;
+          } else if (latestDeployment.fallbackUrl) {
+            // Use fallback URL if primary is not available
+            window.open(latestDeployment.fallbackUrl, '_blank');
+            return;
+          }
+        }
+      }
+      
+      // Fallback options with explanations
+      const fallbackOptions = [
+        {
+          name: 'Docker Deployment',
+          url: 'http://localhost:8080',
+          description: 'Default Docker deployment with Nginx reverse proxy'
+        },
+        {
+          name: 'Local Development Server',
+          url: 'http://localhost:3000',
+          description: 'Frontend development server'
+        },
+        {
+          name: 'Backend API',
+          url: 'http://localhost:8000/docs',
+          description: 'API documentation if frontend is not available'
+        }
+      ];
+      
+      // Create a user-friendly message
+      let message = 'This project is deployed but we couldn\'t open the demo automatically.\n\n';
+      message += 'Try these URLs manually:\n\n';
+      
+      fallbackOptions.forEach((option, index) => {
+        message += `${index + 1}. ${option.name}: ${option.url}\n   (${option.description})\n\n`;
+      });
+      
+      message += 'Make sure Docker is running if using Docker deployment.';
+      
+      alert(message);
     } else {
       // In a real implementation, this would show a preview modal or message
-      alert('Demo not available for this project yet.');
+      alert('Demo not available for this project yet. Deploy the project to see a live demo.');
     }
   };
 
@@ -1254,13 +1471,26 @@ function Dashboard() {
   };
 
   const getStatusText = (status) => {
-    switch (status) {
+    // Normalize the status to lowercase for comparison
+    const normalizedStatus = (status || '').toLowerCase();
+    
+    switch (normalizedStatus) {
       case 'completed':
+      case 'deployed':
         return 'Completed';
       case 'in-progress':
+      case 'building':
+      case 'active':
         return 'In Progress';
       case 'failed':
+      case 'error':
         return 'Failed';
+      case 'creating':
+        return 'Creating';
+      case 'deploying':
+        return 'Deploying';
+      case 'archived':
+        return 'Archived';
       default:
         return 'Unknown';
     }
@@ -1270,28 +1500,46 @@ function Dashboard() {
     {
       title: 'New Project',
       description: 'Create a new application from scratch',
-      icon: Plus,
+      icon: 'Plus',
       action: handleCreateNew
     },
     {
       title: 'AI Chat',
       description: 'Chat with AI to build applications',
-      icon: MessageSquare,
+      icon: 'MessageSquare',
       action: () => navigate('/ai-chat')
+    },
+    {
+      title: 'AI Builder',
+      description: 'Turn chat conversations into real applications',
+      icon: 'Play',
+      action: () => navigate('/builder')
     },
     {
       title: 'Deploy',
       description: 'Deploy your applications to the cloud',
-      icon: Rocket,
+      icon: 'Rocket',
       action: () => navigate('/deploy')
     },
     {
       title: 'Integrations',
       description: 'Connect third-party services',
-      icon: GitBranch,
+      icon: 'GitBranch',
       action: () => navigate('/integrations')
     }
   ];
+
+  // Icon mapping function
+  const getIconComponent = (iconName) => {
+    switch (iconName) {
+      case 'Plus': return Plus;
+      case 'MessageSquare': return MessageSquare;
+      case 'Play': return Play;
+      case 'Rocket': return Rocket;
+      case 'GitBranch': return GitBranch;
+      default: return Plus;
+    }
+  };
 
   return (
     <Container>
@@ -1364,15 +1612,18 @@ function Dashboard() {
         </SectionHeader>
         
         <QuickActions>
-          {quickActions.map((action, index) => (
-            <ActionCard key={index} onClick={action.action}>
-              <ActionIcon>
-                <action.icon size={24} />
-              </ActionIcon>
-              <ActionTitle>{action.title}</ActionTitle>
-              <ActionDescription>{action.description}</ActionDescription>
-            </ActionCard>
-          ))}
+          {quickActions.map((action, index) => {
+            const IconComponent = getIconComponent(action.icon);
+            return (
+              <ActionCard key={index} onClick={action.action}>
+                <ActionIcon>
+                  <IconComponent size={24} />
+                </ActionIcon>
+                <ActionTitle>{action.title}</ActionTitle>
+                <ActionDescription>{action.description}</ActionDescription>
+              </ActionCard>
+            );
+          })}
         </QuickActions>
       </Section>
       
@@ -1431,8 +1682,10 @@ function Dashboard() {
                   <ProjectName>{project.name}</ProjectName>
                   <ProjectMeta>
                     <span>{project.framework}</span>
+                    <span>Type: {project.type}</span>
                     <span>Created: {project.createdAt}</span>
                     <span>Modified: {project.lastModified}</span>
+                    <span>Description: {project.description || 'No description'}</span>
                   </ProjectMeta>
                 </ProjectInfo>
                 <ProjectActions>
@@ -1443,7 +1696,15 @@ function Dashboard() {
                     <Eye size={16} />
                     View
                   </ActionButton>
-                  {project.previewUrl && (
+                  {project.deployed ? (
+                    <ActionButton 
+                      className="success" 
+                      onClick={() => handleViewDemo(project)}
+                    >
+                      <ExternalLink size={16} />
+                      View Demo
+                    </ActionButton>
+                  ) : project.previewUrl ? (
                     <ActionButton 
                       className="success" 
                       onClick={() => handleViewDemo(project)}
@@ -1451,7 +1712,7 @@ function Dashboard() {
                       <ExternalLink size={16} />
                       Demo
                     </ActionButton>
-                  )}
+                  ) : null}
                   {!project.deployed && (
                     <ActionButton 
                       className="primary" 
@@ -1491,6 +1752,14 @@ function Dashboard() {
                 </ProjectHeader>
                 
                 <ProjectDetails>
+                  <ProjectDetail>
+                    <span className="label">Description</span>
+                    <span className="value">{project.description || 'No description'}</span>
+                  </ProjectDetail>
+                  <ProjectDetail>
+                    <span className="label">Type</span>
+                    <span className="value">{project.type}</span>
+                  </ProjectDetail>
                   <ProjectDetail>
                     <span className="label">Created</span>
                     <span className="value">{project.createdAt}</span>
@@ -1547,7 +1816,15 @@ function Dashboard() {
                     <Eye size={16} />
                     View
                   </ActionButton>
-                  {project.previewUrl ? (
+                  {project.deployed ? (
+                    <ActionButton 
+                      className="success" 
+                      onClick={() => handleViewDemo(project)}
+                    >
+                      <ExternalLink size={16} />
+                      View Demo
+                    </ActionButton>
+                  ) : project.previewUrl ? (
                     <ActionButton 
                       className="success" 
                       onClick={() => handleViewDemo(project)}
@@ -1596,7 +1873,7 @@ function Dashboard() {
             <ModalBody>
               <ProjectDetailsSection>
                 <ProjectDetailsTitle>
-                  <FileDocument size={20} />
+                  <FileText size={20} />
                   Project Details
                 </ProjectDetailsTitle>
                 <ProjectDetailsGrid>
@@ -1606,6 +1883,13 @@ function Dashboard() {
                       <StatusIndicator className={selectedProject.status}>
                         {getStatusText(selectedProject.status)}
                       </StatusIndicator>
+                    </ProjectDetailValue>
+                  </ProjectDetailCard>
+                  
+                  <ProjectDetailCard>
+                    <ProjectDetailLabel>Type</ProjectDetailLabel>
+                    <ProjectDetailValue>
+                      <TechTag>{selectedProject.type}</TechTag>
                     </ProjectDetailValue>
                   </ProjectDetailCard>
                   
@@ -1628,12 +1912,20 @@ function Dashboard() {
               
               <ProjectDetailsSection>
                 <ProjectDetailsTitle>
+                  <FileText size={20} />
+                  Description
+                </ProjectDetailsTitle>
+                <p>{selectedProject.description || 'No description provided for this project.'}</p>
+              </ProjectDetailsSection>
+              
+              <ProjectDetailsSection>
+                <ProjectDetailsTitle>
                   <Code size={20} />
                   Tech Stack
                 </ProjectDetailsTitle>
                 <TechStack>
-                  {Object.values(selectedProject.techStack).map((tech, index) => (
-                    <TechTag key={index}>{tech}</TechTag>
+                  {Object.entries(selectedProject.techStack).map(([key, tech], index) => (
+                    <TechTag key={index}>{key}: {tech}</TechTag>
                   ))}
                 </TechStack>
               </ProjectDetailsSection>
@@ -1650,18 +1942,62 @@ function Dashboard() {
                 </FeaturesList>
               </ProjectDetailsSection>
               
+              {selectedProject.integrations && selectedProject.integrations.length > 0 && (
+                <ProjectDetailsSection>
+                  <ProjectDetailsTitle>
+                    <GitBranch size={20} />
+                    Integrations
+                  </ProjectDetailsTitle>
+                  <FeaturesList>
+                    {selectedProject.integrations.map((integration, index) => (
+                      <FeatureTag key={index}>{integration}</FeatureTag>
+                    ))}
+                  </FeaturesList>
+                </ProjectDetailsSection>
+              )}
+              
+              {selectedProject.config && Object.keys(selectedProject.config).length > 0 && (
+                <ProjectDetailsSection>
+                  <ProjectDetailsTitle>
+                    <Settings size={20} />
+                    Configuration
+                  </ProjectDetailsTitle>
+                  <ProjectDetailsGrid>
+                    {Object.entries(selectedProject.config).map(([key, value], index) => (
+                      <ProjectDetailCard key={index}>
+                        <ProjectDetailLabel>{key.replace(/_/g, ' ')}</ProjectDetailLabel>
+                        <ProjectDetailValue>
+                          {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                        </ProjectDetailValue>
+                      </ProjectDetailCard>
+                    ))}
+                  </ProjectDetailsGrid>
+                </ProjectDetailsSection>
+              )}
+              
               <ProjectDetailsSection>
                 <ProjectDetailsTitle>
                   <Monitor size={20} />
                   Application Preview
                 </ProjectDetailsTitle>
-                {selectedProject.previewUrl ? (
+                {selectedProject.deployed || selectedProject.previewUrl ? (
                   <ModalDemoPreview>
                     <ModalDemoImage>
                       <Globe size={60} />
                     </ModalDemoImage>
                     <p>This is a preview of your generated application. The full demo shows your complete application with all features.</p>
                     <p>Tech Stack: {selectedProject.techStack.frontend} + {selectedProject.techStack.backend} + {selectedProject.techStack.database}</p>
+                    <ActionButton 
+                      className="success" 
+                      onClick={() => {
+                        const url = selectedProject.previewUrl || 'http://localhost:8080';
+                        window.open(url, '_blank');
+                      }}
+                      style={{ marginTop: '1rem' }}
+                    >
+                      <ExternalLink size={16} />
+                      View Live Demo
+                    </ActionButton>
                   </ModalDemoPreview>
                 ) : (
                   <ModalDemoPreview>

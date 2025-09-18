@@ -7,6 +7,9 @@ from pathlib import Path
 from datetime import datetime
 import time
 
+# Import static server
+from .static_server import static_server
+
 class DeployerService:
     """
     Service for deploying generated applications to various platforms.
@@ -123,50 +126,99 @@ class DeployerService:
             if not project_dir.exists():
                 raise Exception(f"Project directory not found: {project_path}")
             
-            # Ensure docker-compose.yml exists, create if not
-            docker_compose_path = project_dir / "docker-compose.yml"
-            if not docker_compose_path.exists():
-                self._create_docker_compose(project_dir, project_name)
+            # Try Docker deployment first
+            docker_success = False
+            docker_error = None
             
-            # Ensure nginx.conf exists, create if not
-            nginx_conf_path = project_dir / "nginx.conf"
-            if not nginx_conf_path.exists():
-                self._create_nginx_config(project_dir, project_name)
-            
-            # Build Docker images
             try:
-                # Build the application
-                build_result = subprocess.run(
-                    ["docker-compose", "build"],
-                    cwd=project_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
+                # Ensure docker-compose.yml exists, create if not
+                docker_compose_path = project_dir / "docker-compose.yml"
+                if not docker_compose_path.exists():
+                    self._create_docker_compose(project_dir, project_name)
                 
-                if build_result.returncode != 0:
-                    raise Exception(f"Docker build failed: {build_result.stderr}")
-            except subprocess.TimeoutExpired:
-                raise Exception("Docker build timed out")
+                # Ensure nginx.conf exists, create if not
+                nginx_conf_path = project_dir / "nginx.conf"
+                if not nginx_conf_path.exists():
+                    self._create_nginx_config(project_dir, project_name)
+                
+                # Build Docker images
+                try:
+                    # Build the application
+                    build_result = subprocess.run(
+                        ["docker-compose", "build"],
+                        cwd=project_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    
+                    if build_result.returncode != 0:
+                        raise Exception(f"Docker build failed: {build_result.stderr}")
+                except subprocess.TimeoutExpired:
+                    raise Exception("Docker build timed out")
+                except Exception as e:
+                    raise Exception(f"Failed to build Docker images: {str(e)}")
+                
+                # Start containers
+                try:
+                    up_result = subprocess.run(
+                        ["docker-compose", "up", "-d"],
+                        cwd=project_dir,
+                        capture_output=True,
+                        text=True,
+                        timeout=300
+                    )
+                    
+                    if up_result.returncode != 0:
+                        raise Exception(f"Docker compose up failed: {up_result.stderr}")
+                except subprocess.TimeoutExpired:
+                    raise Exception("Docker compose up timed out")
+                except Exception as e:
+                    raise Exception(f"Failed to start containers: {str(e)}")
+                
+                docker_success = True
+                
             except Exception as e:
-                raise Exception(f"Failed to build Docker images: {str(e)}")
+                docker_error = str(e)
+                print(f"Docker deployment failed: {docker_error}")
             
-            # Start containers
-            try:
-                up_result = subprocess.run(
-                    ["docker-compose", "up", "-d"],
-                    cwd=project_dir,
-                    capture_output=True,
-                    text=True,
-                    timeout=300
-                )
+            # If Docker deployment failed, try static file server as fallback
+            if not docker_success:
+                print("Falling back to static file server...")
                 
-                if up_result.returncode != 0:
-                    raise Exception(f"Docker compose up failed: {up_result.stderr}")
-            except subprocess.TimeoutExpired:
-                raise Exception("Docker compose up timed out")
-            except Exception as e:
-                raise Exception(f"Failed to start containers: {str(e)}")
+                # Try to find the frontend build directory
+                frontend_build_path = project_dir / "frontend" / "build"
+                if not frontend_build_path.exists():
+                    # Try alternative path
+                    frontend_build_path = project_dir / "build"
+                
+                if frontend_build_path.exists():
+                    # Use static file server
+                    result = static_server.serve_project(
+                        project_id=hash(project_name) % 10000,  # Simple project ID generation
+                        project_name=project_name,
+                        build_path=str(frontend_build_path)
+                    )
+                    
+                    if result["success"]:
+                        return {
+                            "success": True,
+                            "platform": "static",
+                            "service_name": f"{project_name}-static",
+                            "urls": {
+                                "frontend": result["url"],
+                                "backend": "Backend not available in static mode",
+                                "api_docs": "API docs not available in static mode"
+                            },
+                            "message": f"Successfully served {project_name} via static file server at {result['url']}"
+                        }
+                
+                # If we can't find build files, return Docker error
+                return {
+                    "success": False,
+                    "error": docker_error,
+                    "message": f"Docker deployment failed: {docker_error}. Static file server fallback also failed."
+                }
             
             # Return success response with URLs
             return {

@@ -20,10 +20,20 @@ import {
   GitBranch,
   Settings,
   Eye,
-  Copy
-} from 'lucide-react';
+  Copy,
+  ExternalLink,
+  Rocket,
+  BarChart3,
+  Globe,
+  ShoppingCart,
+  MessageSquare,
+  X
+} from 'lucide-react'; // Updated imports to fix caching issues
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import ProjectsService from '../services/projectsService';
+import EnhancedDeploymentService from '../services/enhancedDeploymentService';
+import DeploymentNotification from '../components/common/DeploymentNotification';
 
 const fadeIn = keyframes`
   from { opacity: 0; transform: translateY(20px); }
@@ -38,7 +48,7 @@ const Container = styled.div`
 
 const Header = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
   
@@ -69,6 +79,10 @@ const HeaderRight = styled.div`
   display: flex;
   gap: 1rem;
   align-items: center;
+  
+  @media (max-width: 768px) {
+    flex-wrap: wrap;
+  }
 `;
 
 const SearchBar = styled.div`
@@ -117,6 +131,10 @@ const FilterButton = styled.button`
     border-color: #667eea;
     color: #667eea;
   }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem;
+  }
 `;
 
 const CreateButton = styled.button`
@@ -136,6 +154,11 @@ const CreateButton = styled.button`
     transform: translateY(-2px);
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
   }
+  
+  @media (max-width: 768px) {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
 `;
 
 const StatsGrid = styled.div`
@@ -152,6 +175,11 @@ const StatCard = styled.div`
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   border: 1px solid #e2e8f0;
   animation: ${fadeIn} 0.5s ease-out;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
 `;
 
 const StatNumber = styled.div`
@@ -194,7 +222,7 @@ const ProjectHeader = styled.div`
 
 const ProjectHeaderTop = styled.div`
   display: flex;
-  justify-content: between;
+  justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 1rem;
 `;
@@ -249,6 +277,7 @@ const ProjectDescription = styled.p`
   color: #64748b;
   line-height: 1.5;
   margin-bottom: 1rem;
+  min-height: 3rem;
 `;
 
 const ProjectStatus = styled.div`
@@ -266,6 +295,7 @@ const ProjectStatus = styled.div`
     &.building { background: #f59e0b; }
     &.error { background: #ef4444; }
     &.deployed { background: #3b82f6; }
+    &.creating { background: #8b5cf6; }
   }
   
   .status-text {
@@ -276,6 +306,7 @@ const ProjectStatus = styled.div`
     &.building { color: #f59e0b; }
     &.error { color: #ef4444; }
     &.deployed { color: #3b82f6; }
+    &.creating { color: #8b5cf6; }
   }
 `;
 
@@ -285,17 +316,39 @@ const ProjectMeta = styled.div`
   gap: 1rem;
   font-size: 0.875rem;
   color: #64748b;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+`;
+
+const ProjectFeatures = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+`;
+
+const FeatureTag = styled.span`
+  background: #e0f2fe;
+  color: #0369a1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 500;
 `;
 
 const ProjectActions = styled.div`
   padding: 1rem 1.5rem;
   background: #f8fafc;
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
 `;
 
 const ActionButton = styled.button`
-  flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -324,6 +377,28 @@ const ActionButton = styled.button`
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
     }
   }
+  
+  &.success {
+    background: #10b981;
+    color: white;
+    border-color: #10b981;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+    }
+  }
+  
+  &.warning {
+    background: #f59e0b;
+    color: white;
+    border-color: #f59e0b;
+    
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+    }
+  }
 `;
 
 const EmptyState = styled.div`
@@ -346,6 +421,35 @@ const EmptyState = styled.div`
   
   p {
     margin-bottom: 2rem;
+    max-width: 500px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+`;
+
+const ViewDemoButton = styled.button`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background: #2563eb;
+    transform: translateY(-1px);
+  }
+  
+  &:disabled {
+    background: #94a3b8;
+    cursor: not-allowed;
+    transform: none;
   }
 `;
 
@@ -355,57 +459,89 @@ function Projects() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
   const [loading, setLoading] = useState(true);
+  const [showNotification, setShowNotification] = useState(true);
 
-  // Mock project data - in real app, this would come from API
+  // Fetch real project data from API
   useEffect(() => {
-    const mockProjects = [
-      {
-        id: 1,
-        name: 'E-commerce Dashboard',
-        type: 'ecommerce',
-        description: 'Complete online store with product management, orders, and analytics dashboard.',
-        status: 'deployed',
-        createdAt: '2024-01-15',
-        lastModified: '2024-01-20',
-        features: ['React', 'FastAPI', 'MySQL', 'Stripe'],
-        url: 'https://my-store.vercel.app'
-      },
-      {
-        id: 2,
-        name: 'Task Manager Pro',
-        type: 'productivity',
-        description: 'Team collaboration platform with real-time updates and project tracking.',
-        status: 'active',
-        createdAt: '2024-01-18',
-        lastModified: '2024-01-22',
-        features: ['React', 'FastAPI', 'MySQL', 'WebSocket']
-      },
-      {
-        id: 3,
-        name: 'Blog Platform',
-        type: 'blog',
-        description: 'Content management system with rich editor and SEO optimization.',
-        status: 'building',
-        createdAt: '2024-01-20',
-        lastModified: '2024-01-22',
-        features: ['React', 'FastAPI', 'MySQL']
-      },
-      {
-        id: 4,
-        name: 'Chat Application',
-        type: 'chat',
-        description: 'Real-time messaging platform with file sharing and group chats.',
-        status: 'error',
-        createdAt: '2024-01-19',
-        lastModified: '2024-01-21',
-        features: ['React', 'FastAPI', 'MySQL', 'WebSocket']
+    const fetchProjects = async () => {
+      try {
+        setLoading(true);
+        const response = await ProjectsService.getProjects();
+        
+        // Transform projects to match expected format
+        const transformedProjects = response.projects.map(project => ({
+          id: project.id,
+          name: project.name,
+          type: project.type || project.project_type || 'dashboard',
+          description: project.description,
+          status: project.status || 'active',
+          createdAt: project.created_at,
+          lastModified: project.updated_at || project.created_at,
+          features: project.features || [],
+          // We'll fetch the deployment URL separately
+          url: null
+        }));
+        
+        // Fetch deployment URLs for deployed projects
+        const projectsWithUrls = await Promise.all(
+          transformedProjects.map(async (project) => {
+            try {
+              // Get deployments for this project
+              const deploymentResponse = await EnhancedDeploymentService.getProjectDeployments(project.id);
+              
+              // Find the most recent deployed deployment
+              const deployedDeployments = deploymentResponse.deployments.filter(d => d.status === 'deployed');
+              if (deployedDeployments.length > 0) {
+                // Sort by created date to get the most recent
+                deployedDeployments.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+                project.url = deployedDeployments[0].url;
+              }
+              
+              return project;
+            } catch (error) {
+              console.warn(`Failed to fetch deployments for project ${project.id}:`, error);
+              return project;
+            }
+          })
+        );
+        
+        setProjects(projectsWithUrls);
+        setLoading(false);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+        toast.error('Failed to load projects');
+        setLoading(false);
+        
+        // Fallback to mock data if API fails
+        const mockProjects = [
+          {
+            id: 1,
+            name: 'E-commerce Dashboard',
+            type: 'ecommerce',
+            description: 'Complete online store with product management, orders, and analytics dashboard.',
+            status: 'deployed',
+            createdAt: '2024-01-15',
+            lastModified: '2024-01-20',
+            features: ['React', 'FastAPI', 'MySQL', 'Stripe'],
+            url: null
+          },
+          {
+            id: 2,
+            name: 'Task Manager Pro',
+            type: 'productivity',
+            description: 'Team collaboration platform with real-time updates and project tracking.',
+            status: 'active',
+            createdAt: '2024-01-18',
+            lastModified: '2024-01-22',
+            features: ['React', 'FastAPI', 'MySQL', 'WebSocket']
+          }
+        ];
+        
+        setProjects(mockProjects);
       }
-    ];
+    };
 
-    setTimeout(() => {
-      setProjects(mockProjects);
-      setLoading(false);
-    }, 1000);
+    fetchProjects();
   }, []);
 
   const filteredProjects = projects.filter(project => {
@@ -422,38 +558,95 @@ function Projects() {
     building: projects.filter(p => p.status === 'building').length
   };
 
+  // Update project stats with real data when available
+  useEffect(() => {
+    const fetchProjectStats = async () => {
+      try {
+        const response = await ProjectsService.getProjectStats();
+        // We'll keep using the local calculation for now since it's working
+      } catch (error) {
+        console.warn('Failed to fetch project stats:', error);
+      }
+    };
+
+    if (projects.length > 0) {
+      fetchProjectStats();
+    }
+  }, [projects]);
+
   const handleCreateProject = () => {
     navigate('/builder');
   };
 
   const handleViewProject = (project) => {
     toast.success(`Opening ${project.name}`);
+    // In a real app, this would navigate to the project details page
   };
 
   const handleEditProject = (project) => {
     toast.success(`Editing ${project.name}`);
+    // In a real app, this would navigate to the project editor
   };
 
   const handleDeployProject = (project) => {
-    navigate('/deploy', { state: { project } });
+    navigate('/deploy', { state: { projectId: project.id } });
   };
 
-  const handleDeleteProject = (project) => {
+  const handleDeleteProject = async (project) => {
     if (window.confirm(`Are you sure you want to delete ${project.name}?`)) {
-      setProjects(prev => prev.filter(p => p.id !== project.id));
-      toast.success(`${project.name} deleted`);
+      try {
+        await ProjectsService.deleteProject(project.id);
+        setProjects(prev => prev.filter(p => p.id !== project.id));
+        toast.success(`${project.name} deleted successfully`);
+      } catch (error) {
+        console.error('Error deleting project:', error);
+        toast.error(`Failed to delete ${project.name}`);
+      }
+    }
+  };
+
+  const handleViewCode = (project) => {
+    toast.success(`Viewing code for ${project.name}`);
+    // In a real app, this would open the code viewer
+  };
+
+  const handleViewDemo = (project) => {
+    if (project.url) {
+      window.open(project.url, '_blank');
+    } else {
+      toast.error('Demo URL not available for this project. Please deploy the project first to generate a live demo URL.');
+      // Navigate to deploy page to encourage user to deploy
+      navigate('/deploy', { state: { projectId: project.id } });
     }
   };
 
   const getProjectIcon = (type) => {
-    const icons = {
-      ecommerce: <Cloud size={20} />,
-      blog: <Edit3 size={20} />,
-      chat: <MessageCircle size={20} />,
-      productivity: <CheckCircle size={20} />,
-      dashboard: <BarChart3 size={20} />
+    // Using a switch statement to ensure all icons are properly referenced
+    switch (type) {
+      case 'ecommerce':
+        return <ShoppingCart size={20} />;
+      case 'blog':
+        return <Edit3 size={20} />;
+      case 'chat':
+        return <MessageSquare size={20} />;
+      case 'productivity':
+        return <CheckCircle size={20} />;
+      case 'dashboard':
+        return <BarChart3 size={20} />;
+      default:
+        return <Folder size={20} />;
+    }
+  };
+
+  const getStatusColor = (status) => {
+    const colors = {
+      active: '#10b981',
+      building: '#f59e0b',
+      error: '#ef4444',
+      deployed: '#3b82f6',
+      creating: '#8b5cf6'
     };
-    return icons[type] || <Folder size={20} />;
+    return colors[status] || '#64748b';
   };
 
   if (loading) {
@@ -477,6 +670,12 @@ function Projects() {
 
   return (
     <Container>
+      {showNotification && (
+        <DeploymentNotification 
+          onClose={() => setShowNotification(false)} 
+          project={null}
+        />
+      )}
       <Header>
         <HeaderLeft>
           <Title>My Projects</Title>
@@ -532,7 +731,7 @@ function Projects() {
           <p>
             {searchTerm ? 
               `No projects match "${searchTerm}"` : 
-              "You haven't created any projects yet"
+              "You haven't created any projects yet. Start building your first AI-powered application today!"
             }
           </p>
           <CreateButton onClick={handleCreateProject}>
@@ -569,16 +768,29 @@ function Projects() {
                   </span>
                 </ProjectStatus>
                 
+                <ProjectFeatures>
+                  {project.features && project.features.map((feature, index) => (
+                    <FeatureTag key={index}>{feature}</FeatureTag>
+                  ))}
+                </ProjectFeatures>
+                
                 <ProjectMeta>
                   <span>
                     <Calendar size={14} style={{ marginRight: '0.25rem' }} />
-                    {new Date(project.createdAt).toLocaleDateString()}
+                    Created: {new Date(project.createdAt).toLocaleDateString()}
                   </span>
                   <span>
                     <Clock size={14} style={{ marginRight: '0.25rem' }} />
-                    {new Date(project.lastModified).toLocaleDateString()}
+                    Modified: {new Date(project.lastModified).toLocaleDateString()}
                   </span>
                 </ProjectMeta>
+                
+                {project.url && (
+                  <ViewDemoButton onClick={() => handleViewDemo(project)}>
+                    <ExternalLink size={14} />
+                    View Demo
+                  </ViewDemoButton>
+                )}
               </ProjectHeader>
               
               <ProjectActions>
@@ -589,13 +801,16 @@ function Projects() {
                   <Eye size={14} />
                   View
                 </ActionButton>
-                <ActionButton onClick={() => handleEditProject(project)}>
-                  <Edit3 size={14} />
-                  Edit
+                <ActionButton onClick={() => handleViewCode(project)}>
+                  <Code size={14} />
+                  Code
                 </ActionButton>
-                <ActionButton onClick={() => handleDeployProject(project)}>
-                  <Play size={14} />
-                  Deploy
+                <ActionButton 
+                  className={project.status === 'deployed' ? 'success' : 'warning'}
+                  onClick={() => handleDeployProject(project)}
+                >
+                  <Rocket size={14} />
+                  {project.status === 'deployed' ? 'Re-deploy' : 'Deploy'}
                 </ActionButton>
                 <ActionButton onClick={() => handleDeleteProject(project)}>
                   <Trash2 size={14} />

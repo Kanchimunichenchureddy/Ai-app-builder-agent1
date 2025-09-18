@@ -17,7 +17,8 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import AIChat from './pages/AIChat';
 import Integrations from './pages/Integrations';
-// Removed Charts import
+import Projects from './pages/Projects';
+import Settings from './pages/Settings';
 
 // Services
 import { AuthProvider, useAuth } from './services/auth';
@@ -178,12 +179,15 @@ function AppContent() {
         <ContentArea>
           <Routes>
             <Route path="/" element={<Home />} />
+            {/* AI Builder route - accepts state from AI Chat */}
             <Route path="/builder" element={<Builder />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/deploy" element={<Deploy />} />
+            {/* AI Chat route - can navigate to Builder with context */}
             <Route path="/ai-chat" element={<AIChat />} />
             <Route path="/integrations" element={<Integrations />} />
-            {/* Removed Charts route */}
+            <Route path="/projects" element={<Projects />} />
+            <Route path="/settings" element={<Settings />} />
             <Route path="*" element={<Home />} />
           </Routes>
         </ContentArea>

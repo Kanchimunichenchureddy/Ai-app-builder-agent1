@@ -186,10 +186,10 @@ const Container = styled.div`
 `;
 
 const Sidebar = styled.div`
-  width: 320px;
+  width: 280px; /* Reduced from 320px to 280px to reduce left spacing */
   background: ${props => getThemeColors(props.isDarkMode).cardBackground};
   border-right: 1px solid ${props => getThemeColors(props.isDarkMode).borderColor};
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced from 1.5rem to 1rem */
   overflow-y: auto;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
   z-index: 10;
@@ -205,7 +205,7 @@ const Sidebar = styled.div`
   }
   
   @media (max-width: 480px) {
-    padding: 1rem;
+    padding: 0.75rem; /* Reduced from 1rem */
     height: calc(100vh - 3rem);
   }
 `;
@@ -214,21 +214,21 @@ const SidebarHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem; /* Reduced from 1.5rem to 1rem */
   
   @media (max-width: 480px) {
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem; /* Reduced from 1rem */
   }
 `;
 
 const SidebarTitle = styled.h2`
-  font-size: 1.25rem;
+  font-size: 1.1rem; /* Reduced from 1.25rem to 1.1rem */
   font-weight: 600;
   color: ${props => getThemeColors(props.isDarkMode).textColor};
   margin: 0;
   
   @media (max-width: 480px) {
-    font-size: 1.1rem;
+    font-size: 1rem; /* Reduced from 1.1rem */
   }
 `;
 
@@ -258,7 +258,7 @@ const NewChatButton = styled.button`
   background: ${theme.primaryGradient};
   color: white;
   border: none;
-  padding: 0.875rem;
+  padding: 0.75rem; /* Reduced from 0.875rem to 0.75rem */
   border-radius: 0.75rem;
   font-weight: 500;
   cursor: pointer;
@@ -266,7 +266,7 @@ const NewChatButton = styled.button`
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem; /* Reduced from 1.5rem to 1rem */
   transition: all 0.2s ease;
   
   &:hover {
@@ -275,7 +275,7 @@ const NewChatButton = styled.button`
   }
   
   @media (max-width: 480px) {
-    padding: 0.75rem;
+    padding: 0.625rem; /* Reduced from 0.75rem */
     font-size: 0.9rem;
   }
 `;
@@ -314,6 +314,7 @@ const MainContent = styled.div`
   flex-direction: column;
   position: relative;
   z-index: 1;
+  width: calc(100% - 280px); /* Explicitly set width to fill remaining space */
   
   @media (max-width: 768px) {
     width: 100%;
@@ -321,16 +322,16 @@ const MainContent = styled.div`
 `;
 
 const Header = styled.div`
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced from 1.5rem to 1rem */
   border-bottom: 1px solid ${props => getThemeColors(props.isDarkMode).borderColor};
   background: ${props => getThemeColors(props.isDarkMode).cardBackground};
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem; /* Reduced from 1rem to 0.75rem */
   
   @media (max-width: 480px) {
-    padding: 1rem;
+    padding: 0.75rem; /* Reduced from 1rem */
   }
 `;
 
@@ -356,30 +357,30 @@ const MenuButton = styled.button`
 `;
 
 const Title = styled.h1`
-  font-size: 1.75rem;
+  font-size: 1.5rem; /* Reduced from 1.75rem to 1.5rem */
   font-weight: 700;
   color: ${props => getThemeColors(props.isDarkMode).textColor};
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.5rem; /* Reduced from 0.75rem to 0.5rem */
   
   @media (max-width: 768px) {
-    font-size: 1.5rem;
+    font-size: 1.35rem; /* Reduced from 1.5rem */
   }
   
   @media (max-width: 480px) {
-    font-size: 1.25rem;
+    font-size: 1.25rem; /* Reduced from 1.25rem */
   }
 `;
 
 const Subtitle = styled.p`
   color: ${props => getThemeColors(props.isDarkMode).secondaryTextColor};
-  font-size: 0.9rem;
-  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem; /* Reduced from 0.9rem to 0.85rem */
+  margin: 0.125rem 0 0 0; /* Reduced from 0.25rem */
   
   @media (max-width: 480px) {
-    font-size: 0.8rem;
+    font-size: 0.75rem; /* Reduced from 0.8rem */
   }
 `;
 
@@ -400,11 +401,11 @@ const ThemeToggle = styled.button`
 const ChatContainer = styled.div`
   flex: 1;
   overflow-y: auto;
-  padding: 2rem;
+  padding: 1rem; /* Reduced from 1.5rem to 1rem */
   display: flex;
   flex-direction: column;
   background: ${props => getThemeColors(props.isDarkMode).containerBackground};
-  gap: 2rem;
+  gap: 1.25rem; /* Reduced from 1.5rem to 1.25rem */
   
   &::-webkit-scrollbar {
     width: 8px;
@@ -420,20 +421,20 @@ const ChatContainer = styled.div`
   }
   
   @media (max-width: 768px) {
-    padding: 1.5rem;
-    gap: 1.5rem;
+    padding: 0.875rem; /* Reduced from 1rem */
+    gap: 1rem;
   }
   
   @media (max-width: 480px) {
-    padding: 1rem;
-    gap: 1rem;
+    padding: 0.75rem; /* Reduced from 0.75rem */
+    gap: 0.875rem;
   }
 `;
 
 const Message = styled.div`
   display: flex;
-  gap: 1.25rem;
-  max-width: 900px;
+  gap: 1rem; /* Reduced from 1.25rem to 1rem */
+  max-width: 100%; /* Changed from 900px to 100% to use full width */
   width: 100%;
   align-self: ${props => props.role === 'user' ? 'flex-end' : 'flex-start'};
   animation: ${slideIn} 0.4s ease-out;
@@ -474,18 +475,19 @@ const Message = styled.div`
   
   @media (max-width: 768px) {
     max-width: 100%;
-    padding: 0 1rem;
-    gap: 1rem;
+    padding: 0 0.75rem; /* Reduced from 1rem */
+    gap: 0.75rem; /* Reduced from 1rem */
   }
   
   @media (max-width: 480px) {
-    gap: 0.75rem;
+    gap: 0.5rem; /* Reduced from 0.75rem */
+    padding: 0 0.5rem;
   }
 `;
 
 const Avatar = styled.div`
-  width: 3rem;
-  height: 3rem;
+  width: 2.5rem; /* Reduced from 3rem to 2.5rem */
+  height: 2.5rem; /* Reduced from 3rem to 2.5rem */
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -495,27 +497,30 @@ const Avatar = styled.div`
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
   
   @media (max-width: 480px) {
-    width: 2.5rem;
-    height: 2.5rem;
+    width: 2.25rem; /* Reduced from 2.5rem */
+    height: 2.25rem; /* Reduced from 2.5rem */
   }
 `;
 
 const MessageContent = styled.div`
-  max-width: 85%;
-  padding: 1.25rem;
+  flex: 1; /* Allow content to expand */
+  padding: 1rem;
   line-height: 1.6;
   position: relative;
+  word-wrap: break-word; /* Ensure long words break properly */
+  overflow-wrap: break-word; /* Ensure content wraps correctly */
   
   pre {
     background: ${props => props.isDarkMode ? '#1e293b' : '#1e293b'};
     color: ${props => props.isDarkMode ? '#f8fafc' : '#f8fafc'};
-    padding: 1.25rem;
+    padding: 1rem;
     border-radius: 0.75rem;
     overflow-x: auto;
     margin: 1rem 0;
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
     font-family: 'Monaco', 'Consolas', monospace;
     font-size: 0.9rem;
+    max-width: 100%; /* Ensure pre doesn't overflow */
   }
   
   code {
@@ -525,6 +530,7 @@ const MessageContent = styled.div`
     border-radius: 0.375rem;
     font-family: 'Monaco', 'Consolas', monospace;
     font-size: 0.9rem;
+    word-break: break-word; /* Ensure code breaks properly */
   }
   
   p {
@@ -581,6 +587,9 @@ const MessageContent = styled.div`
     width: 100%;
     border-collapse: collapse;
     margin: 1rem 0;
+    display: block; /* Allow table to scroll horizontally */
+    overflow-x: auto;
+    white-space: nowrap;
   }
   
   th, td {
@@ -595,13 +604,11 @@ const MessageContent = styled.div`
   }
   
   @media (max-width: 768px) {
-    padding: 1rem;
-    max-width: 80%;
+    padding: 0.875rem;
   }
   
   @media (max-width: 480px) {
     padding: 0.75rem;
-    max-width: 75%;
     font-size: 0.9rem;
   }
 `;
@@ -642,19 +649,19 @@ const ActionButton = styled.button`
 `;
 
 const InputContainer = styled.div`
-  padding: 1.5rem;
+  padding: 1rem; /* Reduced from 1.5rem to 1rem */
   border-top: 1px solid ${props => getThemeColors(props.isDarkMode).borderColor};
   background: ${props => getThemeColors(props.isDarkMode).cardBackground};
   
   @media (max-width: 480px) {
-    padding: 1rem;
+    padding: 0.75rem; /* Reduced from 1rem */
   }
 `;
 
 const InputWrapper = styled.div`
   display: flex;
-  gap: 0.75rem;
-  max-width: 900px;
+  gap: 0.5rem; /* Reduced from 0.75rem to 0.5rem */
+  max-width: 100%; /* Changed from 900px to 100% */
   margin: 0 auto;
   position: relative;
   
@@ -669,13 +676,13 @@ const InputWrapper = styled.div`
 
 const Input = styled.textarea`
   flex: 1;
-  padding: 1rem 3rem 1rem 1.25rem;
+  padding: 0.875rem 3rem 0.875rem 1rem; /* Adjusted padding */
   border: 1px solid ${props => getThemeColors(props.isDarkMode).borderColor};
   border-radius: 1.5rem;
   font-size: 1rem;
   font-family: inherit;
   resize: none;
-  min-height: 60px;
+  min-height: 50px; /* Reduced from 60px to 50px */
   max-height: 200px;
   transition: all 0.2s ease;
   background: ${props => getThemeColors(props.isDarkMode).inputBg};
@@ -688,12 +695,12 @@ const Input = styled.textarea`
   }
   
   @media (max-width: 768px) {
-    padding: 0.875rem 2.5rem 0.875rem 1rem;
+    padding: 0.75rem 2.5rem 0.75rem 0.875rem; /* Adjusted padding */
     font-size: 0.9rem;
   }
   
   @media (max-width: 480px) {
-    padding: 0.75rem 2rem 0.75rem 0.875rem;
+    padding: 0.625rem 2rem 0.625rem 0.75rem; /* Adjusted padding */
     font-size: 0.85rem;
   }
 `;
@@ -767,10 +774,10 @@ const VoiceButton = styled.button`
 const QuickSuggestions = styled.div`
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.5rem; /* Reduced from 0.75rem to 0.5rem */
   margin-top: 1rem;
-  padding: 0 1rem;
-  max-width: 900px;
+  padding: 0 0.75rem; /* Reduced from 1rem */
+  max-width: 100%; /* Changed from 900px to 100% */
   margin: 1rem auto 0;
   
   @media (max-width: 768px) {
@@ -1759,14 +1766,13 @@ function AIChat() {
   }, []);
 
   const quickSuggestions = [
-    "Create a dashboard with charts and analytics",
-    "Build an e-commerce store with payment integration",
-    "Make a blog with CMS and user authentication",
-    "Develop a real-time chat application",
-    "Design a CRM system with customer management",
-    "Generate a task management app with team collaboration",
-    "Create a social media platform with posts and likes",
-    "Build an inventory management system for warehouses"
+    "Build a task management app",
+    "Create an e-commerce website",
+    "Make a blog with CMS",
+    "Develop a chat application",
+    "Design a dashboard analytics",
+    // Added new suggestion for builder integration
+    "Take this conversation to the Builder"
   ];
 
   const advancedFeatures = [
@@ -2450,6 +2456,21 @@ Please ask me questions to better understand my needs.`;
                       {isSpeaking ? <VolumeX size={14} /> : <Speech size={14} />}
                       {isSpeaking ? 'Stop' : 'Listen'}
                     </TTSButton>
+                    {/* Added new button to send conversation to Builder */}
+                    <ActionButton 
+                      isDarkMode={isDarkMode} 
+                      onClick={() => {
+                        navigate('/builder', { 
+                          state: { 
+                            userPrompt: message.content,
+                            chatHistory: messages
+                          }
+                        });
+                      }}
+                    >
+                      <Play size={14} />
+                      Build Project
+                    </ActionButton>
                   </MessageActions>
                 )}
               </MessageContent>

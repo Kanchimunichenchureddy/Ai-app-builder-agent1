@@ -114,7 +114,7 @@ async def deploy_project(
         # Update deployment based on result
         if result["success"]:
             deployment.status = DeploymentStatus.DEPLOYED
-            deployment.url = result.get("url")
+            deployment.url = result.get("urls", {}).get("frontend")
             deployment.api_url = result.get("urls", {}).get("backend")
             deployment.deployment_logs = result.get("message", "")
         else:
@@ -133,7 +133,8 @@ async def deploy_project(
                 "url": deployment.url,
                 "api_url": deployment.api_url
             },
-            "result": result
+            "result": result,
+            "message": result.get("message", "Deployment completed")
         }
         
     except HTTPException:

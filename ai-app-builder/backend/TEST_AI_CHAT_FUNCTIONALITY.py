@@ -39,24 +39,34 @@ def test_ai_agent_import():
         return None
 
 async def test_chat_interaction(agent):
-    """Test a simple chat interaction"""
+    """Test a simple chat interaction, including a code request."""
     try:
         print("\n3. Testing Chat Interaction...")
+        
+        # Test 1: General greeting
         print("   Sending test message to AI agent...")
+        test_message_1 = "Hello, what can you help me with as an AI app builder?"
+        context_1 = {"user_id": "test_user_1"}
+        response_1 = await agent.chat_with_user(test_message_1, context_1)
+        print("   ✅ General greeting response received.")
+
+        # Test 2: Code generation request
+        print("\n   Sending code generation request to AI agent via chat...")
+        test_message_2 = "Can you give me a complete python function to calculate the factorial of a number?"
+        context_2 = {"user_id": "test_user_1"} # same user to maintain context
+        response_2 = await agent.chat_with_user(test_message_2, context_2)
         
-        test_message = "Hello, what can you help me with as an AI app builder?"
-        context = {"user_id": "test_user"}
+        print("   ✅ Code generation response received.")
+        print(f"   Response Preview:\n{response_2}")
+
+        # Check if the response contains a python function definition
+        if "def factorial" in response_2 and "return" in response_2:
+            print("   ✅ Response contains a valid Python function for factorial.")
+            return True
+        else:
+            print("   ❌ Response does not seem to contain a complete factorial function.")
+            return False
         
-        response = await agent.chat_with_user(test_message, context)
-        
-        print("✅ Chat Interaction: SUCCESSFUL")
-        print(f"   Response Length: {len(response)} characters")
-        
-        # Show a preview of the response (first 200 characters)
-        response_preview = response[:200] + "..." if len(response) > 200 else response
-        print(f"   Response Preview: {response_preview}")
-        
-        return True
     except Exception as e:
         print(f"❌ Chat Interaction: FAILED - {str(e)}")
         return False

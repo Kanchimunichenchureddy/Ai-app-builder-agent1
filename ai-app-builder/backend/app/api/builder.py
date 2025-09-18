@@ -118,7 +118,11 @@ async def generate_project(
             owner_id=current_user.id,
             config=analysis.get("config", {}),
             features=analysis.get("features", []),
-            integrations=analysis.get("integrations", [])
+            integrations=analysis.get("integrations", []),
+            # Add tech stack information to the project
+            frontend_framework=tech_stack.get("frontend", "react"),
+            backend_framework=tech_stack.get("backend", "fastapi"),
+            database_type=tech_stack.get("database", "mysql")
         )
         
         db.add(project)
@@ -148,7 +152,11 @@ async def generate_project(
                     "name": project.name,
                     "type": project.project_type,
                     "status": project.status,
-                    "tech_stack": generated_project.get("tech_stack", {}),
+                    "tech_stack": {
+                        "frontend": project.frontend_framework,
+                        "backend": project.backend_framework,
+                        "database": project.database_type
+                    },
                     "created_at": project.created_at.isoformat(),
                     "project_path": project_path
                 },
@@ -385,7 +393,11 @@ async def create_from_template(
             status=ProjectStatus.CREATING,
             owner_id=current_user.id,
             config=customizations,
-            features=template["features"]
+            features=template["features"],
+            # Add default tech stack information
+            frontend_framework="react",
+            backend_framework="fastapi",
+            database_type="mysql"
         )
         
         db.add(project)
@@ -410,6 +422,11 @@ async def create_from_template(
                 "name": project.name,
                 "type": project.project_type,
                 "status": project.status,
+                "tech_stack": {
+                    "frontend": project.frontend_framework,
+                    "backend": project.backend_framework,
+                    "database": project.database_type
+                },
                 "template_used": template_id
             },
             "message": f"🎉 {project_name} created from {template['name']} template!"
@@ -584,7 +601,11 @@ async def generate_project_with_custom_stack(
                 }
             },
             features=analysis.get("features", []),
-            integrations=analysis.get("integrations", [])
+            integrations=analysis.get("integrations", []),
+            # Add tech stack information to the project
+            frontend_framework=frontend_framework,
+            backend_framework=backend_framework,
+            database_type=database
         )
         
         db.add(project)
@@ -619,9 +640,9 @@ async def generate_project_with_custom_stack(
                     "type": project.project_type,
                     "status": project.status,
                     "tech_stack": {
-                        "frontend": frontend_framework,
-                        "backend": backend_framework,
-                        "database": database
+                        "frontend": project.frontend_framework,
+                        "backend": project.backend_framework,
+                        "database": project.database_type
                     },
                     "created_at": project.created_at.isoformat(),
                     "project_path": project_path

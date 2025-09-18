@@ -71,19 +71,19 @@ class AIAgentService:
                     temperature=0.7
                 )
                 # Check if we got a valid response (not a fallback)
-                if not response.startswith("// Fallback") and "insufficient_quota" not in response and "Too Many Requests" not in response and "429" not in response and "User not found" not in response and "Request timeout" not in response:
+                if response and not response.startswith("// Fallback") and "insufficient_quota" not in response and "Too Many Requests" not in response and "429" not in response and "User not found" not in response and "Request timeout" not in response:
                     return response
                 else:
                     # Mark API as not working if we get specific errors
-                    if "User not found" in response:
+                    if response and "User not found" in response:
                         self.openrouter_api_working = False
                         error_message = "OpenRouter: Invalid API key or account not found"
-                    elif "insufficient_quota" in response or "Too Many Requests" in response or "429" in response:
+                    elif response and ("insufficient_quota" in response or "Too Many Requests" in response or "429" in response):
                         error_message = "OpenRouter: API quota exceeded or rate limit reached"
-                    elif "Request timeout" in response:
+                    elif response and "Request timeout" in response:
                         error_message = "OpenRouter: Request timeout - service is taking too long to respond"
                     else:
-                        error_message = "OpenRouter: Service unavailable"
+                        error_message = "OpenRouter: Service unavailable or returned an empty response."
                     
                     return self._generate_fallback_response(error_message)
                         
@@ -92,6 +92,8 @@ class AIAgentService:
             self.openrouter_api_working = False
             error_message = f"OpenRouter: {str(e)}"
             return self._generate_fallback_response(error_message)
+        
+        return self._generate_fallback_response("No active LLM service configured or API key is missing.")
     
     def _generate_fallback_response(self, error_message: str) -> str:
         """
@@ -527,10 +529,14 @@ If you need specific help, please try again later when the AI service is availab
         capabilities_list = ", ".join([cap for cap, enabled in self.capabilities.items() if enabled])
         
         system_prompt = f"""
-        You are an expert AI assistant helping users build applications. 
+        You are an expert AI assistant and a senior software engineer helping users build applications.
+        Your primary goal is to provide direct, actionable, and complete solutions.
+
+        When a user asks for code, provide complete, production-ready code snippets or entire files. Do not provide samples or incomplete examples. The code should be fully functional and ready to be used in a project.
+        
         Provide helpful, concise responses about:
         1. Application architecture and design
-        2. Code generation and best practices
+        2. **Complete Code Generation**: When asked for code, generate the full file or a complete, working snippet.
         3. Technology stack recommendations
         4. Troubleshooting and debugging
         5. Deployment strategies
@@ -558,10 +564,7 @@ If you need specific help, please try again later when the AI service is availab
         
         Context: {json.dumps(context, indent=2) if context else "No additional context"}
         
-        Please provide a comprehensive response that directly addresses the user's question or request.
-        Include specific examples, code snippets, or step-by-step instructions when appropriate.
-        If this is a follow-up to a previous conversation, maintain context and build upon previous discussions.
-        When providing technical information, include relevant data, statistics, or references to support your answers.
+        Based on the system prompt, provide a comprehensive and direct response. If the user asks for code, generate the complete code required. Do not use placeholders or sample code.
         """
         
         try:

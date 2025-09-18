@@ -88,7 +88,20 @@ async def get_projects(
                 "database_type": project.database_type,
                 "created_at": project.created_at.isoformat(),
                 "updated_at": project.updated_at.isoformat() if project.updated_at else None,
-                "repository_url": project.repository_url
+                "repository_url": project.repository_url,
+                # Include deployment information
+                "deployments": [
+                    {
+                        "id": deployment.id,
+                        "platform": deployment.platform,
+                        "status": deployment.status,
+                        "url": deployment.url,
+                        "api_url": deployment.api_url,
+                        "created_at": deployment.created_at.isoformat() if deployment.created_at else None,
+                        "deployed_at": deployment.deployed_at.isoformat() if deployment.deployed_at else None
+                    }
+                    for deployment in project.deployments
+                ]
             }
             for project in projects
         ],
@@ -132,7 +145,20 @@ async def get_project(
             "project_path": project.project_path,
             "repository_url": project.repository_url,
             "created_at": project.created_at.isoformat(),
-            "updated_at": project.updated_at.isoformat() if project.updated_at else None
+            "updated_at": project.updated_at.isoformat() if project.updated_at else None,
+            # Include deployment information
+            "deployments": [
+                {
+                    "id": deployment.id,
+                    "platform": deployment.platform,
+                    "status": deployment.status,
+                    "url": deployment.url,
+                    "api_url": deployment.api_url,
+                    "created_at": deployment.created_at.isoformat() if deployment.created_at else None,
+                    "deployed_at": deployment.deployed_at.isoformat() if deployment.deployed_at else None
+                }
+                for deployment in project.deployments
+            ]
         }
     }
 
